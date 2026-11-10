@@ -1,0 +1,7 @@
+.card { font-family: system-ui, sans-serif; font-size: 20px; line-height: 1.6; text-align: left; padding: 24px; color: #172536; background: #f5f7fa; }
+.word { font-size: 40px; font-weight: bold; }
+.ipa, .hint { color: #536477; }
+h3 { font-size: 18px; color: #215d91; margin-bottom: 4px; }
+.nightMode.card { background: #1a2029; color: #e6edf5; }
+.nightMode h3 { color: #89bcf0; }
+.nightMode .ipa, .nightMode .hint { color: #afbdcb; }

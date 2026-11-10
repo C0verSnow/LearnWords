@@ -1,0 +1,65 @@
+import json
+import os
+from pathlib import Path
+
+import requests
+
+from src.config import required_env
+
+
+def read_session():
+    path = Path(os.getenv("SESSION_FILE", ".session/doubao.json"))
+    if os.getenv("SUPABASE_URL"):
+        url = (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/authenticated/"
+               + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
+               + os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"))
+        try:
+            response = requests.get(url, headers={
+                "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
+                "apikey": required_env("SUPABASE_SERVICE_ROLE_KEY"),
+            }, timeout=20)
+            if not response.ok:
+                raise RuntimeError(f"会话下载失败（HTTP {response.status_code}）")
+            data = response.json()
+        except requests.RequestException:
+            raise RuntimeError("会话下载失败") from None
+    else:
+        if not path.exists():
+            raise RuntimeError("没有会话文件，请先按 docs/session-research.md 完成登录实验")
+        data = json.loads(path.read_text(encoding="utf-8"))
+    validate_session(data)
+    return data
+
+
+def restore_session(page, data, mode):
+    page.set.cookies(data["cookies"])
+    if mode == "web_storage":
+        for key, value in data["local_storage"].items():
+            page.set.local_storage(key, value)
+        for key, value in data["session_storage"].items():
+            page.set.session_storage(key, value)
+    page.refresh()
+
+
+def export_session(page, path):
+    data = {"version": 1, "cookies": page.cookies(all_domains=True, all_info=True),
+            "local_storage": page.local_storage(), "session_storage": page.session_storage()}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    path.chmod(0o600)
+
+
+def validate_session(data):
+    if not isinstance(data, dict) or data.get("version") != 1:
+        raise ValueError("会话文件版本错误")
+    if not isinstance(data.get("cookies"), list):
+        raise ValueError("会话文件缺少 cookies 列表")
+    for cookie in data["cookies"]:
+        if not isinstance(cookie, dict) or not all(isinstance(cookie.get(k), str)
+                                                  for k in ("name", "value", "domain")):
+            raise ValueError("Cookie 格式错误")
+    for key in ("local_storage", "session_storage"):
+        storage = data.get(key)
+        if not isinstance(storage, dict) or any(not isinstance(k, str) or not isinstance(v, str)
+                                                for k, v in storage.items()):
+            raise ValueError("网页存储格式错误")
