@@ -1,0 +1,82 @@
+name: Make cards
+run-name: make-${{ inputs.request_id || github.run_id }} chat-${{ inputs.chat_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: Number of cards (1–100)
+        required: true
+        default: '20'
+      mode:
+        description: Word selection
+        type: choice
+        options: [next, random]
+        default: next
+      request_id:
+        description: Original task ID for recovery (empty for a new task)
+        default: ''
+      chat_id:
+        description: Telegram private chat ID (optional for manual runs)
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learnword-card-records
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_REF: ${{ github.ref_name }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SESSION_MODE: ${{ vars.SESSION_MODE || 'none' }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
+      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
+      MAX_CARDS: ${{ vars.MAX_CARDS || '100' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Chrome, speech engine and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak-ng
+          echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          python -m pip install -r requirements-worker.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Generate, checkpoint, publish and notify
+        env:
+          COUNT: ${{ inputs.count }}
+          MODE: ${{ inputs.mode }}
+          REQUEST_ID: ${{ inputs.request_id || format('run-{0}', github.run_id) }}
+          CHAT_ID: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
+        run: python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
+      - name: Preserve products and recovery data even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: learnword-${{ github.run_id }}
+          path: |
+            output/
+            docs/explanations/
+            docs/manifests/
+            docs/records/
+          if-no-files-found: ignore
+          retention-days: 14
