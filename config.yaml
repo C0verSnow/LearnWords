@@ -3,9 +3,8 @@ attempts: 2
 doubao:
   url: https://www.doubao.com/chat/
   timeout: 120
-  input: 'css:textarea'
+  input: 'css:[data-testid="chat_input_input"] [contenteditable="true"]'
   answer: 'css:[data-testid="message_text_content"]'
   generating: 'css:[data-testid="chat_stop_button"]'
   new_chat: 'css:[data-testid="create_conversation_button"]'
-  # Must match an authenticated-only account control; confirm against the live page.
-  authenticated: 'css:[data-testid="user_avatar"]'
+  authenticated: 'css:[data-sidebar-footer-account-menu] [data-testid="chat_header_avatar_button"]'

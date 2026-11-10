@@ -6,7 +6,16 @@
 
 `local_storage()` 与 `session_storage()` 分别读取当前源的网页存储，`set_user_data_path()` 指向 Chrome 用户数据目录。三者是不同的状态，不应统称为 Cookie。Session Storage 按标签页隔离，因此生产代码在同一标签页新建聊天，保留可能需要的网页状态。
 
-当前没有真实账号或已部署服务，**没有做豆包登录恢复实验**，也没有证明 JSON 会话能跨 Ubuntu Runner 使用。Supabase JSON 适配器是可选实验载体，默认 `SESSION_MODE=none`；不能把这个实现当作会话方案已经定型。
+初次交付时没有真实账号或已部署服务，因此没有把 JSON 会话方案当作已经定型。下面记录后续账号配置与实验进度；本机网页已登录不等于 Ubuntu Runner 可以恢复登录。
+
+## 2026-11-10 真实页面检查
+
+- 已在用户登录的 Chrome 中查询 `approach`，网页返回包含七个所需字段的完整 JSON。
+- 通过 Chrome Elements 面板核对，输入框现在是 `chat_input_input` 内的 `contenteditable` 节点，登录头像位于 `data-sidebar-footer-account-menu` 内的 `chat_header_avatar_button`；已修正 `config.yaml`。新对话和回答节点的配置仍能对应真实页面。
+- 通过 Chrome Application 面板读取了当前豆包源的 29 个 Cookie、33 项 Local Storage 和 1 项 Session Storage，保存为被忽略的 `.session/doubao.json`。这种导出没有包含 IndexedDB 或整个 Chrome 用户目录。
+- 已上传至 LearnWords 独立 Supabase 项目的私有 `browser-sessions/doubao.json` 并回读核对。跨 Ubuntu Runner 的恢复和真实查询仍待远端 Probe 验证。
+
+浏览器操作依据：[Chrome Cookie 面板](https://developer.chrome.com/docs/devtools/application/cookies)。没有读取其他站点的会话，没有把 Cookie 或网页存储写入 Git。
 
 ## 待执行步骤
 
