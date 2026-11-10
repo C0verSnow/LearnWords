@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import re
 import sys
@@ -31,10 +32,17 @@ def run(args, config):
         selected = select_words(ROOT / "docs/words/vocabulary.txt", records, args.count, args.mode)
         manifest = {"task_id": args.request_id, "requested": args.count, "mode": args.mode,
                     "selected": selected, "created_at": utc_now(), "stage": "selected"}
-    manifest.update({"failed": {}, "succeeded": [], "shortfall": manifest["requested"] - len(manifest["selected"]),
-                     "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"})
-    write_json(manifest_path, manifest)
     try:
+        release = github.find_release(args.request_id) if manifest.get("succeeded") else None
+        if release and not release["draft"]:
+            manifest["release_url"] = release["html_url"]
+            record_delivery(manifest, records, records_path, manifest_path, github)
+            notify(args.chat_id, summary(manifest))
+            return 0
+        manifest.pop("error", None)
+        manifest.update({"failed": {}, "succeeded": [], "shortfall": manifest["requested"] - len(manifest["selected"]),
+                         "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"})
+        write_json(manifest_path, manifest)
         cards = generate_cards(manifest, config, output, manifest_path)
         if not cards:
             manifest["stage"] = "failed" if manifest["selected"] else "no_available_words"
@@ -53,14 +61,7 @@ def run(args, config):
         commit = checkpoint(ROOT, github.ref)
         manifest["release_url"] = github.publish(args.request_id, [apkg, archive, asset_manifest],
                                                  summary(manifest), commit)
-        manifest["stage"] = "published"
-        manifest["published_at"] = utc_now()
-        for card in cards:
-            records[card["Word"]] = {"task_id": args.request_id, "release_url": manifest["release_url"],
-                                     "generated_at": manifest["published_at"]}
-        write_json(records_path, records)
-        write_json(manifest_path, manifest)
-        checkpoint(ROOT, github.ref)
+        record_delivery(manifest, records, records_path, manifest_path, github)
         notify(args.chat_id, summary(manifest))
         return 0
     except Exception as error:
@@ -76,6 +77,18 @@ def run(args, config):
         return 1
     finally:
         write_json(output / "manifest.json", manifest)
+
+
+def record_delivery(manifest, records, records_path, manifest_path, github):
+    manifest.pop("error", None)
+    manifest["stage"] = "published"
+    manifest["published_at"] = utc_now()
+    for word in manifest["succeeded"]:
+        records[word] = {"task_id": manifest["task_id"], "release_url": manifest["release_url"],
+                         "generated_at": manifest["published_at"]}
+    write_json(records_path, records)
+    write_json(manifest_path, manifest)
+    checkpoint(ROOT, github.ref)
 
 
 def generate_cards(manifest, config, output, manifest_path):
@@ -94,7 +107,6 @@ def generate_cards(manifest, config, output, manifest_path):
                         content = browser.generate(word)
                         write_json(content_path, content)
                     else:
-                        import json
                         content = parse_content(json.dumps(cached), word)
                     card = {**content, **pronunciation(word, output / "media")}
                     cards.append(card)

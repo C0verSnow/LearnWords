@@ -79,15 +79,19 @@ class GitHub:
                 return "还没有发布卡包。"
             raise
 
-    def publish(self, task_id, files, body, commit):
-        tag = f"learnword-{task_id}"
+    def find_release(self, task_id):
         try:
-            release = self.request("GET", f"/releases/tags/{quote(tag, safe='')}")
+            return self.request("GET", f"/releases/tags/{quote(f'learnword-{task_id}', safe='')}")
         except GitHubError as error:
             if error.status != 404:
                 raise
+            return None
+
+    def publish(self, task_id, files, body, commit):
+        release = self.find_release(task_id)
+        if release is None:
             release = self.request("POST", "/releases", json={
-                "tag_name": tag, "target_commitish": commit, "name": f"LearnWord {task_id}",
+                "tag_name": f"learnword-{task_id}", "target_commitish": commit, "name": f"LearnWord {task_id}",
                 "body": body, "draft": True,
             })
         assets = {asset["name"]: asset for asset in release["assets"]}

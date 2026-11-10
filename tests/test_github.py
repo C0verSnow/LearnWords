@@ -185,10 +185,25 @@ class GitHubTests(unittest.TestCase):
                 self.assertEqual(set(records), {"approach"})
                 manifest = json.loads((root / "docs/manifests/tg-7.json").read_text())
                 self.assertEqual(manifest["stage"], "published")
+                self.assertNotIn("error", manifest)
                 self.assertEqual(manifest["shortfall"], 1)
                 self.assertEqual(set(manifest["failed"]), {"context"})
                 uploads = len(self.server.uploads)
                 self.assertEqual(run(args, config), 0)
+                self.assertEqual(len(self.server.uploads), uploads)
+                # Reproduce a missing final checkpoint after the release became public.
+                manifest["stage"] = "packaged"
+                manifest["error"] = "CalledProcessError"
+                manifest.pop("release_url")
+                (root / "docs/manifests/tg-7.json").write_text(json.dumps(manifest))
+                (root / "docs/records/generated.json").unlink()
+                valid["Word"] = "context"
+                (root / "docs/explanations/context.json").write_text(json.dumps(valid))
+                self.assertEqual(run(args, config), 0)
+                records = json.loads((root / "docs/records/generated.json").read_text())
+                self.assertEqual(set(records), {"approach"})
+                recovered = json.loads((root / "docs/manifests/tg-7.json").read_text())
+                self.assertNotIn("error", recovered)
                 self.assertEqual(len(self.server.uploads), uploads)
             self.assertEqual(git("status", "--porcelain").strip(), "?? output/")
             self.assertEqual(git("rev-parse", "HEAD").strip(),
