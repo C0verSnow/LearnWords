@@ -47,6 +47,8 @@ class BrowserPage(BaseHTTPRequestHandler):
           document.querySelector('#editor').textContent = '';
         };
         </script>""".replace("RESPONSE", json.dumps(json.dumps(content, ensure_ascii=False)))
+        if self.path == "/enter":
+            page = page.replace("event.preventDefault();", "event.preventDefault(); document.querySelector('#send').click();")
         if self.path == "/rejected":
             page = page.replace(
                 "document.querySelector('#answer').textContent = "
@@ -189,6 +191,7 @@ class BrowserTests(unittest.TestCase):
                 with patch.dict(os.environ, {"SESSION_MODE": "web_storage", "SESSION_FILE": str(path), "SUPABASE_URL": "",
                                              "BROWSER_DIRECTORY": str(Path(directory) / "json-restored")}):
                     enter_config = {key: value for key, value in config.items() if key not in ("send", "new_chat")}
+                    enter_config["url"] = config["url"] + "enter"
                     browser = Doubao(enter_config)
                     try:
                         browser.restore()

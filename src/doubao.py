@@ -69,15 +69,21 @@ class Doubao:
             raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.click()
-        editor.input(prompt(word), clear=True)
+        from DrissionPage.common import Keys
+
+        # DrissionPage's Ctrl+A clear can retain contenteditable drafts; select only this editor.
+        editor.run_js("""this.focus();
+            const range = document.createRange(); range.selectNodeContents(this);
+            const selection = window.getSelection();
+            selection.removeAllRanges(); selection.addRange(range);""")
+        tab.actions.type(Keys.BACKSPACE)
+        editor.input(prompt(word))
         if self.config.get("send"):
             send_button = tab.ele(self.config["send"], timeout=15)
             if not send_button:
                 raise RuntimeError("未找到发送按钮，请更新 send 选择器")
             send_button.click()
         else:
-            from DrissionPage.common import Keys
-
             editor.input(Keys.ENTER)
         deadline = time.monotonic() + self.config["timeout"]
         stable_since, last = time.monotonic(), ""

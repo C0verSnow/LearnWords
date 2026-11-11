@@ -129,3 +129,5 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 真实归档从约 42 MB 增至 83.9 MB，目录统计显示主要新增量来自 optimization_guide_model_store（单组约 37.6 MB）、WasmTtsEngine（25.5 MB）和 OnDeviceHeadSuggestModel（7.9 MB）。按 Chromium 官方实现，前者为下载的模型仓库，WasmTtsEngine 为组件更新器安装的离线朗读引擎；本任务使用 eSpeak 生成音频。归档排除这三类可重建组件，继续保留整个根目录下的网站 Cookie、LocalStorage、IndexedDB、Service Worker 数据，以及 Safe Browsing/CertificateRevocation。迁移按实际归档的文件清单逐个回读比对。
 
 来源：[Chromium 模型仓库路径](https://chromium.googlesource.com/chromium/src/+/9f653591077777c26d771184a67d647258fa7478/chrome/browser/optimization_guide/chrome_browser_main_extra_parts_optimization_guide.cc)、[Wasm TTS 组件安装器](https://github.com/chromium/chromium/blob/main/chrome/browser/component_updater/wasm_tts_engine_component_installer.cc)。Supabase Free 单文件上限为 [50 MB](https://supabase.com/docs/guides/storage/uploads/file-limits)，不通过关闭安全数据库或删网站会话数据挤进限制。
+
+富文本残留回归在远端 Tests 43068013679 再次失败。固定 DrissionPage 4.1.1.4 的 clear() 调用 DOM.focus 后用 Ctrl+A/Delete，实际 contenteditable 仍可能拼接旧草稿。按标准 DOM Range 只选择该编辑器的内容，再用原生 Backspace 删除，保持网站收到正常输入事件；不直接改 textContent，也不改网站验证逻辑。继续使用上表已检索的 DrissionPage，不引入依赖。
