@@ -1,3 +1,15 @@
-# DNS suffix matches the name and its subdomains. Other vendor domains stay on the runner.
+# Suffix rules: observed on the anonymous Doubao page, run 43051895812.
+# Exact vendor hosts keep the rest of each vendor/CDN on the runner.
 doubao.com
+99uri.com
+lf-rc1.yhgfb-cn-static.com
+lf3-config.bytetcc.com
 lf3-short.ibytedapm.com
+moment.bytedance.com
+mon.zijieapi.com
+mssdk.bytedance.com
+p3-flow-imagex-sign.byteimg.com
+p6-flow-imagex-sign.byteimg.com
+p11-flow-imagex-sign.byteimg.com
+p26-flow-imagex-sign.byteimg.com
+vcs.zijieapi.com
