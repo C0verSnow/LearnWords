@@ -29,6 +29,7 @@ def main():
         from scripts.remote_login import storage
 
         storage("POST", "probe/diagnostic.json", {
+            "mode": os.getenv("SESSION_MODE", "none"),
             "body": browser.page.ele("tag:body").text,
             "elements": [{"id": element.attr("data-testid"), "tag": element.tag,
                           "text": element.text}

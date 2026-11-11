@@ -1,6 +1,11 @@
 name: Probe Doubao session
 on:
   workflow_dispatch:
+    inputs:
+      session_mode:
+        description: Session restore experiment (empty uses repository variable)
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -12,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      SESSION_MODE: ${{ vars.SESSION_MODE || 'none' }}
+      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'none' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
