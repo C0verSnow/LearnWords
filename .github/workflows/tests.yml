@@ -20,9 +20,4 @@ jobs:
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
-      - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -v -f
-        env:
-          CHROME_LOG_FILE: ${{ runner.temp }}/learnwords-chrome.log
-      - name: Read test-only Chrome startup failure
-        if: failure()
-        run: tail -60 "$RUNNER_TEMP/learnwords-chrome.log" || true
+      - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -v

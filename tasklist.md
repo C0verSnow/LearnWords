@@ -1,10 +1,12 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794396994] 用户指定如果现有存储实在不行，可使用 Cloudflare 存储作为备选；先验证二进制 AESGCM 归档是否能在已有 Supabase 私有 bucket 正常上传，不提前创建额外服务或迁移凭据。
 - [1794324618] Supabase 控制台提示 legacy API key 将于 2027 年初退役；当前按仓库既有 service_role 配置上线，后续需要按官方迁移说明改为新版 secret key，不能直接把新版 key 填入当前 Bearer 头：https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys 。
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794396994] no-first-run 单一改动后的远端 Tests 43012893373 全部 13 项通过；同一有头 Chrome 回归此前失败，现已通过 Cookie/网页存储、ini、加密目录恢复、关闭后保存与拒绝篡改。清理临时 Chrome 启动诊断，删除已停用的香港 mihomo 和 DeepSeek 访问脚本；当前新 AESGCM 格式仍需最终 Tests 和真实迁移验收。
 - [1794396436] 大陆网络 Probe 43011780885 已成功：GitHub Runner 完成 OAuth 接入，内核 TUN 与出口路由选中，实际 HTTPS 公网 IPv4 与服务器一致且 CN，DNS 和豆包 HTTP 检查通过；退出路由及官方 Tailscale post 清理成功。IPv6 未配置并无公网连通性。节点 ping 仍作为诊断保留，最终可用性由真实 HTTPS 确认。
 - [1794396150] BROWSER_PROFILE_KEY、TS_OAUTH_CLIENT_ID、TS_OAUTH_SECRET 已保存本仓库 .env、Infisical 和仓库级 GitHub Secrets；Infisical 回读一致。TS_EXIT_NODE、TS_EXPECTED_IPV4、SESSION_MODE 变量已保存；服务器无公网 IPv6，可选 IPv6 变量不创建空值。未输出凭据或扩大 GitHub 凭据权限，沿用既有 Git 认证完成仓库配置。
 - [1794396051] 已按用户当场授权在 Tailscale 保存新策略：现有用户/共享用户和两个 TGBot 标签权限保留，learnwords-ci 仅放行 autogroup:internet，并通过策略内测试拒绝服务器 SSH 和路由器管理口。LearnWords 专用 OAuth 只选 Auth Keys 写权限和该标签，已私有转存；armbian Exit Node 后台刷新确认 Allowed。代码已推送 feature/doubao-tailscale，远端 Tests 43010722618 已启动。没有本地编译或测试。

@@ -104,3 +104,5 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 节点探测参考 [Tailscale 1.104.5 ping 源码](https://github.com/tailscale/tailscale/blob/v1.104.5/cmd/tailscale/cli/ping.go)：默认 until-direct=true，成功经 DERP 返回也可能因未建立直连返回非零。检查显式接受中继，节点 ping 作为诊断；真正出口是否可用仍由无代理 HTTPS、期望公网 IP 和 CN 地区比对决定。
 
 现有旧 gzip 归档为 42,578,475 字节。Fernet 会把密文 Base64 编码，体积增长约三分之一，不适合当前约 50 MB 的上传边界。最终使用同一 cryptography 库的 AESGCM 接口：现有 URL-safe Base64 32 字节随机密钥不变，每次使用 os.urandom(12) 生成新 nonce，存储 nonce 与带 128 位认证标签的二进制密文，固定 associated data 标识归档格式版本；额外体积 28 字节，不自行实现密码算法。不支持明文降级；正式对象改为 doubao-profile.tar.gz.enc。本轮原 Fernet 上传未确认保存，旧对象未覆盖。
+
+远端 Tests 43012893373 在补充 no-first-run 后全部 13 项通过；同一测试此前 43012241551 在正确端口和启动参数下连接失败。故障来自首次启动引导，采用标准 no-first-run 跳过初始浏览器向导，仍为有头 Chrome、禁用沙箱，不修改指纹；临时启动日志和参数输出已清理。

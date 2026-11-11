@@ -15,7 +15,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 3. 在 Tailscale Machines 找到该服务器，批准 **Use as exit node**。服务器只提供出口，不需要广播家中网段，也不需要开放内网 SSH 给 CI。
 4. 为 Runner 定义 `tag:learnwords-ci`，标签所有者为管理员。对该来源只授权 `autogroup:internet`；现有的 `src: ["*"]` 全网放行规则会覆盖这个限制，必须按现有用户及旧标签收窄，保留其他设备权限。新 Runner 不应能访问 `100.124.220.89:22` 或路由器管理口。
 5. 创建 LearnWords 专用 OAuth，只选 **Auth Keys / Write**，并限定 `tag:learnwords-ci`。不要借用其他项目的凭据。官方 GitHub Action 创建临时节点，工作流结束后退出并清理节点。
-6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `base64.urlsafe_b64encode(os.urandom(32))` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
+6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `base64.urlsafe_b64encode(os.urandom(32)).decode()` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
 7. 手动运行 **Tests**，只在远端执行测试。随后运行 **Probe browser access and session**，先选择 `network`，确认 TUN、IPv4/IPv6、DNS、实际出口及豆包 HTTP。
 8. 对现有未加密对象，只运行一次 Probe 的 `migrate`。它读取旧 `doubao-profile.tar.gz`，加密到独立对象，下载解密回读比对；不会打开浏览器，也不会重新发送短信。
 9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后加密保存更新。应再用一个新 Runner 复验。
@@ -67,7 +67,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 | DNS 返回 198.18.x.x | 通常是上游 fake-IP；检查服务器是否仍被 DNS 劫持，不能直接将假地址当真实网站 IP |
 | 出口 CN 但豆包不能用 | 继续检查网页状态、区域限制提示、登录和单次真实查询；IP 地区不是可用性保证 |
 | 解密失败 | 核对密钥及对象名，不重建密钥覆盖已有配置，不自动改读明文对象 |
-| profile 下载 400/404 | 确认已执行显式 migrate，或已完成一次新 Login；不要把旧 gzip 对象直接改名为 .fernet |
+| profile 下载 400/404 | 确认已执行显式 migrate，或已完成一次新 Login；不要把旧 gzip 对象直接改名为 .enc |
 | 登录未确认 | 保存私有诊断，核对实际页面；确实失效才重新登录，不连续发短信 |
 | 返回发送失败 / 710022004 | 停止剩余单词和自动重试，检查账号验证与网站提示，不能用重复查询验收 |
 | GitHub/Supabase 下载超时 | 第一阶段这些流量也可能经过大陆出口；先区分站点连通性和隧道问题，收尾仍恢复 Runner 路由 |
