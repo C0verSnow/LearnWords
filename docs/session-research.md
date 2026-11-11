@@ -17,12 +17,14 @@
 | --- | --- |
 | 订阅规范化与私有保存 | 已完成 |
 | 已有豆包 JSON 和 profile 对象 | 已确认存在，不代表当前会话仍有效 |
-| mihomo 香港真实出口 | 待远端 Probe |
-| Chrome 香港真实出口 | 待远端 Probe |
-| 两个新 Runner 恢复并查询完整内容 | 待远端 Probe |
+| mihomo 香港真实出口 | 两次独立 Runner 均确认 HK（42970258764、42970493648） |
+| Chrome 香港真实出口 | 两次独立 Runner 均确认 HK |
+| 两个新 Runner 恢复并查询完整内容 | 登录恢复均通过；发送均失败，后一次只发送 1 次，HTTP 200 内 STREAM_ERROR 710022004 / rate limited，服务端要求 semantic_reasoning 验证 |
 | Release ZIP 与 Telegram 结果 | 待测 |
 | Anki 客户端导入与发音 | 用户另机验收 |
 
 不搬用 macOS 的 Chrome 目录，不把 ini 单独当作凭据。归档保留 Cookie、Local Storage、IndexedDB 等，排除普通缓存与锁/socket。DeepSeek 对象与账号配置不删除，本轮不再使用。
 
 所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；验证使用已有远端 Tests 和 Probe 工作流。
+
+本轮远端 Tests 42970252921 的 13 项测试通过。真实账户仍需人工处理豆包验证后重新 Probe；验证未通过前，尚无可验收的 Release ZIP，也不继续重复查询或发短信。临时 completion 响应采集已移除，私有诊断已清理。

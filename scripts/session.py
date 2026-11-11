@@ -2,7 +2,6 @@ import argparse
 import os
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from src.config import load_config
 from src.doubao import Doubao, LoginExpired
@@ -37,18 +36,13 @@ def main():
                     raise RuntimeError("Chrome 的真实出口不是香港，停止豆包探测")
                 print("Chrome exit country HK confirmed.", flush=True)
             browser.restore()
-            browser.page.listen.start("completion", method="POST")
             browser.generate("approach")
             print(f"登录恢复及完整内容查询通过，用时 {time.monotonic() - started:.1f} 秒。")
     except (TimeoutError, LoginExpired):
         from scripts.remote_login import snapshot, storage
 
         storage("POST", "probe/doubao-diagnostic.json", {
-            "mode": os.getenv("SESSION_MODE", "profile"), **snapshot(browser.page),
-            "requests": [{"path": urlsplit(packet.url).path, "failed": packet.is_failed,
-                          "status": None if packet.is_failed else packet.response.status,
-                          "body": "" if packet.is_failed else str(packet.response.body)[:10000]}
-                         for packet in browser.page.listen.steps(timeout=1)]})
+            "mode": os.getenv("SESSION_MODE", "profile"), **snapshot(browser.page)})
         print("Probe failed; page diagnostic saved privately.", flush=True)
         raise
     finally:

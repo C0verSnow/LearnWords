@@ -5,6 +5,9 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794377675] 香港代理代码已推送 feature/doubao-mihomo；Probe 42970493648 确认单次 completion 被服务端验证要求拒绝。已移除临时响应采集并清理私有诊断；保留正常失败截图文字诊断与停止重试流程。GitHub 已检索相关功能并在 docs/design.md 留存来源；未进行本地编译验证。
+- [1794377427] 本轮远端 Tests 42970252921 通过，13 项真实浏览器、HTTP、音频和打包测试均成功，包含“消息明确发送失败后只发送一次并停止剩余单词”回归；本地仅 AST 语法读取和 git diff --check，未编译或运行测试。
+- [1794377427] 订阅已规范为 MIHOMO_SUBSCRIPTION_URL，.env.example 仅留空值；Infisical 与私有 Supabase 已回读确认与本仓库 .env 一致，没有公开订阅。
 - [1794361338] 无需再次短信登录：42940727343 已用刚保存的会话恢复真实登录，关闭 Chrome 后成功把 ini 与排除普通缓存的浏览器目录上传私有正式对象 doubao-profile.tar.gz；已触发新的 profile Probe 验证新 Runner 是否能复用。
 - [1794360649] ini + 用户目录方案的远端 Tests 42939286532 已通过，复用现有真实 Chrome 和 HTTP 测试，验证目录归档上传下载、ini 重读、持久 Cookie 与 Local Storage 恢复及查询；未运行本地编译或测试。已启动真实远端 Login 42939404640，手机号仅用于当前私有一次性指令，不写入配置或公开记录。
 - [1794359612] 本轮远端 Login 42936978147 已成功：页面确认短信发送后，填入用户即时提供的验证码；私有状态返回 saved，新会话已保存到 Supabase 正式对象并成功私有回读。手机号、验证码和会话内容未写入记录或配置。本次复用已有流程，未新增 GitHub 同类项目检索，未做本地编译验证；跨新 Runner 恢复仍需独立 Probe。
@@ -36,6 +39,7 @@
 - [1794301047] 同步了只有 README 的远端仓库，读完 issue 和补充讨论，建立 feature 分支。
 
 ## 没做：
+- [1794377675] 本轮香港出口仍未通过真实制卡：两次新 Runner 的 Chrome 出口均 HK、已有 profile 登录均恢复成功，但请求返回 710022004 / rate limited；私有响应明确 decision.type=verify、subtype=semantic_reasoning、scene=doubao_message_web。需要人工处理豆包验证后再继续真实查询、Release ZIP 和 Telegram 制卡验收；未重复发短信，未更改 main。
 - [1794376534] 按用户要求暂停 192.168.1.245 部署评估。已取得部分只读检查结果，尚未完成评估结论；未安装依赖、未部署 LearnWords、未进行本地编译验证。后续等待用户恢复。
 - [1794322384] 当前仍缺 Webhook 专用 GitHub 凭据、Supabase 项目选择及会话对象、Vercel 部署与真实制卡验收；PR #2 原先要求等 review，已向用户询问是否合并。豆包已由用户完成网页登录，但跨 Runner 恢复没有验证。
 - [1794302078] 用户尚无账号配置，本次未部署 Vercel/Telegram/Supabase，未验证豆包线上选择器、跨 Runner 登录恢复或 Anki 客户端导入；README 和 docs/session-research.md 已列出配置与验收步骤。
