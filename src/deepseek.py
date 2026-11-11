@@ -12,7 +12,7 @@ class LoginExpired(RuntimeError):
 
 
 class DeepSeek:
-    def __init__(self, config, headless=True, profile=None, ini_path=None):
+    def __init__(self, config, headless=False, profile=None, ini_path=None):
         from DrissionPage import ChromiumOptions, ChromiumPage
 
         self.config = config
@@ -26,7 +26,6 @@ class DeepSeek:
         options.set_user_data_path(str(profile or self.temp.name))
         options.set_local_port(9222).headless(headless)
         options.set_argument("--no-sandbox")
-        options.set_argument("--disable-dev-shm-usage")
         options.set_argument("--window-size=1440,1000")
         if os.getenv("MIHOMO_TUN") == "1":
             options.set_argument("--no-proxy-server")

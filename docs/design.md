@@ -69,3 +69,25 @@ DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动
 用户明确授权从 Infisical 输入现有账号密码、选择 +86 地区、勾选页面条款。复用前文已在 GitHub 检索比较的 DeepSeek 独立 profile 设计，以及已有 DrissionPage 私有 Supabase 控制通道，不引入新依赖或复制第三方代码。浏览器从实际已返回 200 的 /sign_in 开始；制卡主页面路径和账户控件在真实登录后核对，不能把登录页可访问算作登录成功。
 
 Login、Probe、Make cards 均使用已通过实际网卡与无 HTTP 代理出口检查的香港 TUN。DeepSeek JSON 与 profile 使用专用对象名，不覆盖豆包对象。私有登录指令读取后删除，账号密码只从 Infisical 进入一次性指令，不进入工作流输入、Git 或公开日志。页面 DOM 控件、输入长度与截图只保存在同一私有 bucket，便于同一个远端浏览器选择地区和处理条款；未凭登录框推断已登录。复杂本人验证保留当前浏览器等待用户。
+
+远端真实 Chrome 回归发现固定 DrissionPage 版本的 clear/by_js=False 与 input(clear=True) 在本轮重复填写时仍追加旧值。读取官方固定版本发布包和[元素交互文档](https://www.drissionpage.cn/browser_control/ele_operation/)后，使用输入框原生 focus/select 创建选区，再发送真实 Backspace，随后输入新值；不修改浏览器中的认证令牌或调用私有登录接口。同一回归先失败（42976487856）后通过（42977868125），不升级依赖或引入第二套浏览器工具。
+
+## 远端普通窗口模式对照（已获用户明确指示）
+
+两个香港节点均出现前端 Network Error。第二个节点的私有网络摘要只捕获到 AWS WAF challenge/inputs/mp_verify 等 200 响应和遥测，没有捕获账号登录接口请求；页面没有可点击的验证框，不能判断账号密码错误，也尚未取得地区请求字段。当前方案是用普通窗口模式排除无头运行的影响，不承诺能解决服务端限制。
+
+已查 [Playwright 官方 CI headed 说明](https://playwright.dev/python/docs/ci#running-headed) 和 [GitHub Runner 镜像的软件清单](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md) 中的 Xvfb。只借鉴 CI 中虚拟显示的运行方式，继续用现有 DrissionPage 与 Chrome，不引入 Playwright。待用户确认后，仅改 Login 工作流约五行：
+
+```diff
+ env:
++  CHROME_HEADLESS: '0'
+ steps:
+-  - run: python -m scripts.remote_login
++  - run: |
++      command -v xvfb-run
++      xvfb-run -a python -m scripts.remote_login
+```
+
+remote_login 已准备 CHROME_HEADLESS 开关，默认仍为 1。确认前不启用 Xvfb；缺少 xvfb-run 则停止，不自行安装新工具。香港 TUN、账号密码私有读取、一次性指令和关闭 Chrome 后保存用户目录均沿用现有流程。此方案需要确认的原因是 AGENTS.md 明确禁止引入仓库未使用的工具或流程，当前仓库尚未使用 Xvfb。
+
+用户随后明确指示“不要无头模式，不要沙箱”，据此启用 Xvfb 普通窗口模式。Chrome 关闭沙箱，使用现有 Runner 普通用户启动；Login、Probe、Make cards 与 Tests 均通过相同虚拟显示方式运行。下面此前的待确认描述保留为设计过程，当前以本段和工作流实际配置为准。此模式不保证服务端一定放行。

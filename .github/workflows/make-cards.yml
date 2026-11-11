@@ -63,6 +63,8 @@ jobs:
           python -m pip install -r requirements-worker.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Check virtual display for headed Chrome
+        run: command -v xvfb-run
       - name: Start private Hong Kong proxy
         run: python -m scripts.mihomo
       - name: Generate, checkpoint, publish and notify
@@ -71,7 +73,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           REQUEST_ID: ${{ inputs.request_id || format('run-{0}', github.run_id) }}
           CHAT_ID: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
-        run: python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
       - name: Stop TUN before runner cleanup
         if: always()
         run: sudo pkill -x mihomo || true

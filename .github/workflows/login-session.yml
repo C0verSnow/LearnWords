@@ -37,9 +37,11 @@ jobs:
       - run: |
           python -m pip install -r requirements-worker.txt
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Check virtual display for headed Chrome
+        run: command -v xvfb-run
       - name: Start private Hong Kong proxy
         run: python -m scripts.mihomo
-      - run: python -m scripts.remote_login
+      - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.remote_login
       - name: Stop TUN before runner cleanup
         if: always()
         run: sudo pkill -x mihomo || true

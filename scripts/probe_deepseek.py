@@ -15,9 +15,8 @@ def main():
     load_config()
     with tempfile.TemporaryDirectory(prefix="learnword-deepseek-access-") as directory:
         options = ChromiumOptions(read_file=False)
-        options.set_user_data_path(directory).set_local_port(9222).headless(True)
+        options.set_user_data_path(directory).set_local_port(9222).headless(False)
         options.set_argument("--no-sandbox")
-        options.set_argument("--disable-dev-shm-usage")
         options.set_argument("--window-size=1440,1000")
         options.set_argument("--no-proxy-server")
         options.set_browser_path(os.environ["CHROME_PATH"])

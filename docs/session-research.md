@@ -1,3 +1,15 @@
+# 当前：DeepSeek 香港 TUN 登录迁移
+
+用户已明确改用 DeepSeek，使用 Infisical 的现有账号密码并要求中国大陆 +86 地区。代码迁移位于 feature/deepseek-tun，main 尚未更改；.env 与 Infisical 的会话对象已改为 deepseek.json / deepseek-profile.tar.gz，SESSION_MODE=profile、MIHOMO_TUN=1。豆包对象保留。
+
+英文登录页没有地区下拉框或条款复选框，条款为登录即同意。表单校验拒绝带 +86 前缀的输入，只接受大陆 11 位号码；尚未捕获到登录业务请求，因此不能声称已验证实际地区参数。账号密码只通过私有一次性通道填写，没有写入仓库或公开工作流输入。
+
+当前真实登录未成功：香港候选 1 和 2 下均出现前端 Network Error；候选 2 的摘要显示 AWS WAF 验证和遥测返回 200，没有观察到账号登录接口请求，页面也没有可勾选验证框。未保存 DeepSeek 正式会话，跨 Runner 查询、制卡 ZIP 和 Telegram 制卡仍未验收。已停止空白表单等待，不继续重复提交。
+
+输入替换问题已有真实 Chrome 回归，先红后绿；远端 Tests 42977868125 的 13 项通过。本地仅静态检查，没有编译或测试。普通窗口模式的具体待确认方案见 [设计文档](design.md)。
+
+以下保留此前豆包与 DeepSeek 网页访问对照历史。
+
 # 豆包香港出口与远端验收
 
 按用户要求从 DeepSeek 回退到 https://www.doubao.com/chat/，继续使用 GitHub Actions。已有私有 `doubao.json` 和 `doubao-profile.tar.gz` 均存在；此前 profile 在新 Runner 恢复过登录，但消息发送被拒绝。香港节点是否可正常登录和查询，以本轮真实 Probe 结果为准。

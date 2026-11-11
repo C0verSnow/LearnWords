@@ -38,14 +38,16 @@ jobs:
       - run: |
           python -m pip install -r requirements-worker.txt
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Check virtual display for headed Chrome
+        run: command -v xvfb-run
       - name: Start private Hong Kong proxy
         run: python -m scripts.mihomo
       - name: Probe DeepSeek session
         if: inputs.target != 'access'
-        run: python -m scripts.session probe
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session probe
       - name: Inspect DeepSeek page access
         if: inputs.target == 'access'
-        run: python -m scripts.probe_deepseek
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.probe_deepseek
       - name: Stop TUN before runner cleanup
         if: always()
         run: sudo pkill -x mihomo || true

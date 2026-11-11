@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--profile", help="包含 ini 和用户目录的独立实验目录")
     args = parser.parse_args()
     directory = Path(args.profile or ".session/deepseek-browser")
-    browser = DeepSeek(config["deepseek"], headless=args.action == "probe",
+    browser = DeepSeek(config["deepseek"],
                       profile=directory / "profile" if args.action == "capture" else None,
                       ini_path=directory / "chrome.ini" if args.action == "capture" else None)
     try:
