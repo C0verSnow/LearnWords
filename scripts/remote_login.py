@@ -25,7 +25,10 @@ def main():
         if "loc=HK" not in page.ele("tag:body").text.splitlines():
             raise RuntimeError("远端浏览器出口不是香港")
         print("Login Chrome TUN exit country HK confirmed.", flush=True)
+        page.get("https://chat.deepseek.com/")
+        time.sleep(8)
         page.get(config["login_url"])
+        time.sleep(8)
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             state = snapshot(page)
@@ -106,6 +109,11 @@ def apply_command(page, config, command):
                 or any(not isinstance(value, int) or value < 0 for value in point)):
             raise ValueError("Invalid page point")
         page.actions.move_to(tuple(point)).click()
+    elif action == "navigate":
+        path = command.get("path")
+        if path not in ("/", "/sign_in", "/a/chat"):
+            raise ValueError("Unsupported DeepSeek path")
+        page.get("https://chat.deepseek.com" + path)
     elif action != "inspect":
         raise ValueError("Unsupported login action")
 
