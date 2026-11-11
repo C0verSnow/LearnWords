@@ -57,7 +57,7 @@ class Doubao:
         self.check_login()
         tab = self.page
         if self.config.get("new_chat"):
-            new_chat = tab.ele(self.config["new_chat"], timeout=10)
+            new_chat = tab.ele(self.config["new_chat"], timeout=30)
             if not new_chat:
                 raise RuntimeError("未找到新建聊天按钮，请更新 new_chat 选择器")
             new_chat.click()
@@ -68,7 +68,8 @@ class Doubao:
         if not editor:
             raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
-        editor.input(prompt(word))
+        editor.click()
+        editor.input(prompt(word), clear=True)
         if self.config.get("send"):
             send_button = tab.ele(self.config["send"], timeout=15)
             if not send_button:

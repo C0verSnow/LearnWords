@@ -115,9 +115,14 @@ def request_status(page):
         body = None if packet.is_failed else packet.response.body
         code = next((body[key] for key in ("code", "status_code", "statusCode", "error_code")
                      if isinstance(body.get(key), int)), None) if isinstance(body, dict) else None
+        stream = str(body) if "completion" in urlsplit(packet.url).path else ""
         results.append({"host": urlsplit(packet.url).hostname, "path": urlsplit(packet.url).path,
                         "network_failed": packet.is_failed,
                         "http_status": response.get("status"), "code": code,
+                        "stream_error": "STREAM_ERROR" in stream,
+                        "rate_limited": "rate limited" in stream,
+                        "error_710022004": "710022004" in stream,
+                        "semantic_verification": "semantic_reasoning" in stream,
                         "error": (packet._raw_fail_info or {}).get("errorText"),
                         "protocol": response.get("protocol"), "ip": response.get("remoteIPAddress"),
                         "worker": response.get("fromServiceWorker", False),

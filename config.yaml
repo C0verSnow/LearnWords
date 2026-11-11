@@ -8,5 +8,5 @@ doubao:
   answer: 'css:[data-testid="message_text_content"]'
   generating: 'css:[data-testid="chat_stop_button"]'
   failed: 'css:[data-testid="message_box_failed_icon"]'
-  new_chat: 'css:[data-testid="create_conversation_button"]'
+  new_chat: 'xpath://div[@role="button"][starts-with(normalize-space(.), "新对话")]'
   authenticated: 'css:[data-sidebar-footer-account-menu] [data-testid="chat_header_avatar_button"]'
