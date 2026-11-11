@@ -14,6 +14,7 @@ from src.content import FIELDS
 from src.deepseek import DeepSeek
 from src.main import generate_cards
 from src.session import export_session, save_profile
+from scripts.remote_login import apply_command
 
 
 class BrowserPage(BaseHTTPRequestHandler):
@@ -26,6 +27,7 @@ class BrowserPage(BaseHTTPRequestHandler):
         content = {"Word": "approach", **dict.fromkeys(FIELDS, "An example. 中文说明。")}
         page = """<!doctype html><meta charset="utf-8">
         <div id="account">test account</div><button id="new">new chat</button>
+        <input id="login-user" type="text"><input id="login-password" type="password">
         <textarea id="editor"></textarea><button id="send">send</button>
         <pre id="answer"></pre>
         <script>
@@ -116,6 +118,13 @@ class BrowserTests(unittest.TestCase):
                     browser = DeepSeek(config, profile=bundle / "profile", ini_path=bundle / "chrome.ini")
                     try:
                         browser.restore()
+                        login_fields = {"login_user": "css:#login-user", "login_password": "css:#login-password"}
+                        apply_command(browser.page, login_fields,
+                                      {"action": "credentials", "user": "initial-account", "password": "initial-secret"})
+                        apply_command(browser.page, login_fields,
+                                      {"action": "credentials", "user": "updated-account", "password": "updated-secret"})
+                        self.assertEqual(browser.page.ele("css:#login-user").value, "updated-account")
+                        self.assertEqual(browser.page.ele("css:#login-password").value, "updated-secret")
                         browser.page.set.local_storage("local-probe", "value")
                         browser.page.set.session_storage("session-probe", "value")
                         browser.page.set.cookies([{"name": "probe", "value": "ok", "domain": "127.0.0.1", "path": "/", "expires": time.time() + 3600}])

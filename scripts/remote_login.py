@@ -85,8 +85,12 @@ def apply_command(page, config, command):
         user, password = command.get("user"), command.get("password")
         if not isinstance(user, str) or not user or not isinstance(password, str) or not password:
             raise ValueError("Invalid credentials")
-        page.ele(config["login_user"]).input(user, clear=True)
-        page.ele(config["login_password"]).input(password, clear=True)
+        user_field = page.ele(config["login_user"])
+        user_field.clear(by_js=False)
+        user_field.input(user)
+        password_field = page.ele(config["login_password"])
+        password_field.clear(by_js=False)
+        password_field.input(password)
     elif action in ("click", "input", "account"):
         selector = command.get("selector")
         if not isinstance(selector, str) or not selector:
@@ -102,7 +106,8 @@ def apply_command(page, config, command):
             value = command.get("value")
             if not isinstance(value, str):
                 raise ValueError("Invalid input")
-            element.input(value, clear=True)
+            element.clear(by_js=False)
+            element.input(value)
     elif action == "point":
         point = command.get("point")
         if (not isinstance(point, list) or len(point) != 2
