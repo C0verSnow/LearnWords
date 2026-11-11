@@ -3,7 +3,6 @@ import argparse
 import ipaddress
 import json
 import os
-import socket
 import subprocess
 from pathlib import Path
 
@@ -57,14 +56,14 @@ def start_split():
     rules = '''table inet learnwords {
       set doubao4 { type ipv4_addr; }
       set doubao6 { type ipv6_addr; }
-      chain mark {
+      chain lw_output {
         type route hook output priority mangle; policy accept;
         meta mark & 0xff0000 == 0x80000 return
         ip daddr 223.5.5.5 meta l4proto { tcp, udp } th dport 53 meta mark set meta mark | 0x100
         ip daddr @doubao4 counter meta mark set meta mark | 0x100
         ip6 daddr @doubao6 counter meta mark set meta mark | 0x100
       }
-      chain source {
+      chain lw_postrouting {
         type nat hook postrouting priority srcnat; policy accept;
         oifname "tailscale0" meta mark & 0x100 == 0x100 counter masquerade
       }

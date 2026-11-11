@@ -4,6 +4,8 @@ import os
 import tarfile
 import tempfile
 import time
+import json
+from urllib.parse import urlsplit
 from pathlib import Path
 
 import requests
@@ -16,11 +18,14 @@ from src.session import restore_profile, save_profile
 def main():
     config = load_config()
     parser = argparse.ArgumentParser(description="人工登录与会话恢复实验，不输出凭据")
-    parser.add_argument("action", choices=("capture", "probe", "migrate"))
+    parser.add_argument("action", choices=("capture", "probe", "migrate", "domains"))
     parser.add_argument("--profile", help="包含 ini 和完整用户目录的独立实验目录")
     args = parser.parse_args()
     if args.action == "migrate":
         migrate_legacy_profile()
+        return
+    if args.action == "domains":
+        inspect_page_domains(config["doubao"])
         return
     directory = Path(args.profile or ".session/doubao-browser")
     browser = Doubao(config["doubao"],
@@ -53,6 +58,23 @@ def main():
     finally:
         if browser is not None:
             browser.close()
+
+
+def inspect_page_domains(config):
+    directory = Path(".session/domain-observation")
+    browser = Doubao(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
+    try:
+        browser.page.listen.start(True)
+        browser.page.get(config["url"])
+        time.sleep(15)
+        hosts = {}
+        for packet in browser.page.listen.steps(timeout=1):
+            host = urlsplit(packet.url).hostname
+            hosts.setdefault(host, set()).add("failed" if packet.is_failed else str(packet.response.status))
+        print("豆包匿名页面实际请求域名与状态（无路径、正文或凭据）：", flush=True)
+        print(json.dumps({host: sorted(statuses) for host, statuses in sorted(hosts.items())}, ensure_ascii=False), flush=True)
+    finally:
+        browser.close()
 
 
 def migrate_legacy_profile():

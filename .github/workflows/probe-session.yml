@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: Network only, restore and query Doubao, or encrypt the existing legacy profile
+        description: Check network, inspect public domains, restore and query, or encrypt legacy profile
         type: choice
-        options: [session, network, migrate]
+        options: [session, network, migrate, domains]
         default: session
       session_mode:
         description: Session restore experiment (empty uses repository variable)
@@ -51,6 +51,9 @@ jobs:
       - name: Encrypt the legacy profile without opening Chrome
         if: inputs.target == 'migrate'
         run: python -m scripts.session migrate
+      - name: Inspect anonymous Doubao domains
+        if: inputs.target == 'domains'
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session domains
       - name: Probe Doubao session
         if: inputs.target == 'session'
         run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session probe
