@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from src.config import load_config
-from src.doubao import Doubao
+from src.doubao import Doubao, LoginExpired
 from src.session import export_session
 
 
@@ -25,7 +25,7 @@ def main():
             browser.restore()
             browser.generate("approach")
             print("本次恢复及消息查询通过；不代表跨系统或后续会话必定有效。")
-    except TimeoutError:
+    except (TimeoutError, LoginExpired):
         from scripts.remote_login import storage
 
         storage("POST", "probe/diagnostic.json", {
@@ -34,7 +34,7 @@ def main():
                           "text": element.text}
                          for element in browser.page.eles('css:[data-testid]', timeout=0)],
         })
-        print("[DEBUG-query] Query timed out; diagnostic saved privately.", flush=True)
+        print("[DEBUG-query] Probe failed; diagnostic saved privately.", flush=True)
         raise
     finally:
         browser.close()
