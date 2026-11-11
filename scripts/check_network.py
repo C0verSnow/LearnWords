@@ -4,6 +4,7 @@ import json
 import os
 import socket
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -24,6 +25,13 @@ def main():
         verify_target_exit()
         verify_domain_routes()
         verify_direct_services()
+        # DEBUG split TLS: collect only SYN headers/MSS, never packet payloads.
+        capture_log = STATE.parent / 'syn-diagnostic.txt'
+        with capture_log.open('w') as stream:
+            subprocess.Popen(['sudo', 'timeout', '15', 'tcpdump', '-n', '-l', '-i', 'tailscale0',
+                              'tcp port 443 and tcp[tcpflags] & tcp-syn != 0'],
+                             stdout=stream, stderr=subprocess.DEVNULL)
+        time.sleep(1)
         with requests.Session() as session:
             session.trust_env = False
             response = session.get('https://www.doubao.com/', timeout=(10, 30))
@@ -79,7 +87,7 @@ def verify_target_exit():
 
 
 def verify_domain_routes():
-    for domain in domain_names():
+    for domain in [*domain_names(), "www.doubao.com", "lf-flow-web-cdn.doubao.com"]:
         addresses = sorted({item[4][0] for item in socket.getaddrinfo(domain, 443)})
         for address in addresses:
             nft_element('get', address)
@@ -104,6 +112,9 @@ def verify_direct_services():
 
 
 def diagnostics():
+    capture_log = STATE.parent / "syn-diagnostic.txt"
+    if capture_log.exists():
+        print("[DEBUG-split-TLS] " + capture_log.read_text(), flush=True)
     commands = [['ip', '-4', 'rule'], ['ip', '-6', 'rule'], ['ip', '-4', 'route', 'show', 'table', '52'],
                 ['sudo', 'nft', 'list', 'table', 'inet', 'learnwords'], ['resolvectl', 'status'], ['tailscale', 'netcheck']]
     for command in commands:
