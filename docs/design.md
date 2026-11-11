@@ -90,10 +90,10 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 | [tailscale/tailscale](https://github.com/tailscale/tailscale) | 38,918 stars，2026-11-11 提交，BSD-3-Clause；[issue #22324](https://github.com/tailscale/tailscale/issues/22324) 有回复 | Go 守护进程、内核 TUN、直连或 DERP 中继、Exit Node | 使用官方客户端管理路由，无额外 TUN 代理；NAT 后可用，但中继性能仍须实测。 |
 | [tailscale/github-action](https://github.com/tailscale/github-action) | 965 stars，2026-11-03 提交，BSD-3-Clause；[issue #319](https://github.com/tailscale/github-action/issues/319) 有讨论 | 官方 Node Action，临时节点、OAuth 标签和 post 清理 | 使用 v4 和固定客户端 1.104.5，显式 tailscale0；凭据只放仓库 Secrets。 |
 | [juanfont/headscale](https://github.com/juanfont/headscale) | 45,577 stars，2026-11-10 提交，BSD-3-Clause；本次未核实 issue 响应，不纳入采用候选 | 自建控制面，仍需 Tailscale 客户端及独立控制服务器 | 与官方托管控制面对比；本项目已有 tailnet，无需再运维控制面。 |
-| [pyca/cryptography](https://github.com/pyca/cryptography) | 7,843 stars，2026-11-11 提交，Apache-2.0/BSD-3-Clause 双许可 | Python 标准加密配方 Fernet，认证后解密 | 使用成熟加密库保护 gzip 归档，不自行拼接加密算法；会将压缩归档装入内存，适用于当前约几十 MB 的目录，不能用于无限大的档案。 |
+| [pyca/cryptography](https://github.com/pyca/cryptography) | 7,843 stars，2026-11-11 提交，Apache-2.0/BSD-3-Clause 双许可 | Python 官方 AESGCM 认证加密接口，认证后解密 | 使用成熟加密库保护 gzip 归档，不自行拼接加密算法；会将压缩归档装入内存，适用于当前约几十 MB 的目录，不能用于无限大的档案。 |
 | [vernesong/OpenClash](https://github.com/vernesong/OpenClash) | 28,142 stars，2026-10-11 提交，MIT；[issue #5400](https://github.com/vernesong/OpenClash/issues/5400) 有回复 | 既有 OpenWrt 插件，支持局域网设备绕过和 DNS 劫持排除 | 只使用已有的 lan_ac_black_macs 配置，让出口服务器直连；不新增代理或改其他设备分流。 |
 
-依据：[官方 Exit Node 配置](https://tailscale.com/docs/features/exit-nodes)、[GitHub Action](https://github.com/tailscale/github-action)、[Fernet 认证加密](https://cryptography.io/en/latest/fernet/)、[OpenClash 设置源码](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/luasrc/model/cbi/openclash/settings.lua)。OpenWrt 容量与规则评估另见 [评估记录](tailscale-openwrt-assessment.md)。
+依据：[官方 Exit Node 配置](https://tailscale.com/docs/features/exit-nodes)、[GitHub Action](https://github.com/tailscale/github-action)、[AES-GCM 认证加密](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)、[OpenClash 设置源码](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/luasrc/model/cbi/openclash/settings.lua)。OpenWrt 容量与规则评估另见 [评估记录](tailscale-openwrt-assessment.md)。
 
 归档保留完整 User Data 根目录（不是只存 Default），只排除普通缓存、运行锁、socket 与符号链接。先关闭 Chrome，再加密上传；解密验证成功后才解压。旧对象迁移是显式入口，不对明文或错误密钥做自动降级。新对象使用独立名称，迁移回读完成也不等于登录恢复成功。
 
@@ -102,3 +102,5 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 第一阶段普通流量通过 Exit Node；Python 依赖和 GitHub Action 下载在启用出口前完成，后续 GitHub/Supabase/Telegram 仍走当前全局出口，收尾恢复 Runner 路由。第二阶段的域名/IP/App Connector 分流仅预留设计边界，尚未实现，也不声称 Exit Node 原生支持任意域名规则。
 
 节点探测参考 [Tailscale 1.104.5 ping 源码](https://github.com/tailscale/tailscale/blob/v1.104.5/cmd/tailscale/cli/ping.go)：默认 until-direct=true，成功经 DERP 返回也可能因未建立直连返回非零。检查显式接受中继，节点 ping 作为诊断；真正出口是否可用仍由无代理 HTTPS、期望公网 IP 和 CN 地区比对决定。
+
+现有旧 gzip 归档为 42,578,475 字节。Fernet 会把密文 Base64 编码，体积增长约三分之一，不适合当前约 50 MB 的上传边界。最终使用同一 cryptography 库的 AESGCM 接口：现有 URL-safe Base64 32 字节随机密钥不变，每次使用 os.urandom(12) 生成新 nonce，存储 nonce 与带 128 位认证标签的二进制密文，固定 associated data 标识归档格式版本；额外体积 28 字节，不自行实现密码算法。不支持明文降级；正式对象改为 doubao-profile.tar.gz.enc。本轮原 Fernet 上传未确认保存，旧对象未覆盖。

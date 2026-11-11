@@ -15,7 +15,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 3. 在 Tailscale Machines 找到该服务器，批准 **Use as exit node**。服务器只提供出口，不需要广播家中网段，也不需要开放内网 SSH 给 CI。
 4. 为 Runner 定义 `tag:learnwords-ci`，标签所有者为管理员。对该来源只授权 `autogroup:internet`；现有的 `src: ["*"]` 全网放行规则会覆盖这个限制，必须按现有用户及旧标签收窄，保留其他设备权限。新 Runner 不应能访问 `100.124.220.89:22` 或路由器管理口。
 5. 创建 LearnWords 专用 OAuth，只选 **Auth Keys / Write**，并限定 `tag:learnwords-ci`。不要借用其他项目的凭据。官方 GitHub Action 创建临时节点，工作流结束后退出并清理节点。
-6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `cryptography.fernet.Fernet.generate_key()` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
+6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `base64.urlsafe_b64encode(os.urandom(32))` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
 7. 手动运行 **Tests**，只在远端执行测试。随后运行 **Probe browser access and session**，先选择 `network`，确认 TUN、IPv4/IPv6、DNS、实际出口及豆包 HTTP。
 8. 对现有未加密对象，只运行一次 Probe 的 `migrate`。它读取旧 `doubao-profile.tar.gz`，加密到独立对象，下载解密回读比对；不会打开浏览器，也不会重新发送短信。
 9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后加密保存更新。应再用一个新 Runner 复验。
@@ -30,7 +30,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 | --- | --- | --- |
 | TS_OAUTH_CLIENT_ID | Secret | LearnWords 专用 OAuth client ID |
 | TS_OAUTH_SECRET | Secret | 只可注册指定标签的临时节点 |
-| BROWSER_PROFILE_KEY | Secret | 完整目录归档的 Fernet 密钥 |
+| BROWSER_PROFILE_KEY | Secret | 完整目录归档的 AES-256-GCM 密钥 |
 | SUPABASE_URL | Secret | 已有私有会话项目 |
 | SUPABASE_SERVICE_ROLE_KEY | Secret | 已有私有 bucket 的对象读写 |
 | TS_EXIT_NODE | Variable | 服务器 Tailscale IPv4，当前 100.124.220.89 |
@@ -38,7 +38,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 | TS_EXPECTED_IPV6 | Variable，可空 | 服务器实际公网 IPv6；服务器没有公网 IPv6 时留空 |
 | SESSION_MODE | Variable | 生产使用 profile |
 | SUPABASE_SESSION_BUCKET | Variable，可选 | 默认 browser-sessions，必须为私有 bucket |
-| SUPABASE_PROFILE_OBJECT | 工作流固定 | doubao-profile.tar.gz.fernet |
+| SUPABASE_PROFILE_OBJECT | 工作流固定 | doubao-profile.tar.gz.enc |
 | CHROME_PATH | 自动发现 | Runner 镜像中的 Chrome 路径 |
 
 Telegram、GitHub 发布凭据沿用 README 配置。生产 Secrets 不注入不可信 PR；Tests 不需要真实账号和 Tailscale 授权。
@@ -47,7 +47,7 @@ Telegram、GitHub 发布凭据沿用 README 配置。生产 Secrets 不注入不
 
 源配置为 `configs/dp.ini`；运行时独立保存在 `.session/doubao-browser/chrome.ini`。完整 User Data 根目录为 `.session/doubao-browser/profile/`，包含 `Local State`、`Default/` 和其他会话数据。ini 不能代替用户目录，不能只保存 `Default/`。
 
-关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、锁、socket 与符号链接，再用 Fernet 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。Fernet 会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
+关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、锁、socket 与符号链接，再用 AES-GCM 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。AESGCM 接口会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
 
 沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。失败时执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
 
@@ -78,4 +78,4 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 未来如需按目标分流，应单独设计豆包关联域名/IP、DNS 解析与 App Connector，并实测 IPv4/IPv6 和工作流控制流量。Tailscale Exit Node 本身不是任意域名规则引擎。
 
-参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[Fernet](https://cryptography.io/en/latest/fernet/)。检索比较见 [设计记录](design.md)。
+参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。检索比较见 [设计记录](design.md)。

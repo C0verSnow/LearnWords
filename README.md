@@ -32,7 +32,7 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，Gi
 1. 合并 PR 后，在 Actions 的 **Tests** 中确认远端测试通过。制卡工作流保留手动入口，没有每日定时器。
 2. 修改 `docs/words/vocabulary.txt`，一行一个单词。当前五个单词仅为起步样例。
 3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。样例中的 `data-testid` 是待核对的配置，不是已经验证的线上页面契约。
-4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz.fernet`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后加密保存 ini 和完整用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
+4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz.enc`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后加密保存 ini 和完整用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
 5. 配置下表的 Actions secrets/variables，手动执行 **Probe browser access and session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
 6. 导入生成的 APKG，检查字段、英美发音和自动播放。确认后再部署 Webhook。
 7. 用 BotFather 创建 Telegram Bot；在 Vercel 导入本仓库，Framework 选 Other，根目录为仓库根目录，不设置前端构建命令。入口为 `api/telegram.py`，使用 Python 3.12。
@@ -60,7 +60,7 @@ Actions 还需 `TS_OAUTH_CLIENT_ID`、`TS_OAUTH_SECRET`、`BROWSER_PROFILE_KEY` 
 | `SUPABASE_SERVICE_ROLE_KEY` | 不需要 | Secret | 仅 Runner 读写私有会话对象 |
 | `SUPABASE_SESSION_BUCKET` | 不需要 | Variable，可选 | 默认 browser-sessions |
 | `SUPABASE_SESSION_OBJECT` | 不需要 | 工作流固定 | doubao.json，仅供旧 JSON 实验 |
-| `SUPABASE_PROFILE_OBJECT` | 不需要 | 工作流固定 | doubao-profile.tar.gz.fernet，包含 ini 与完整浏览器用户目录 |
+| `SUPABASE_PROFILE_OBJECT` | 不需要 | 工作流固定 | doubao-profile.tar.gz.enc，包含 ini 与完整浏览器用户目录 |
 | `CHROME_PATH` | 不需要 | 工作流自动发现 | Runner 自带 Chrome；本机实验可手动指定 |
 
 GitHub 必须允许 Actions 写 Contents；若分支保护阻止机器人提交 `docs/`，先为这个自动化选择允许写入的数据分支，并让 `GITHUB_REF` 与手动运行的分支一致。不要在有人工改动但未提交的目录运行制卡程序。

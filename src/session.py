@@ -5,9 +5,12 @@ import tarfile
 from pathlib import Path
 
 import requests
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from src.config import required_env
+
+PROFILE_AAD = b"learnwords-browser-profile-v1"
 
 
 def read_session():
@@ -53,11 +56,12 @@ def export_session(page, path):
 
 
 def save_profile(directory):
-    cipher = Fernet(required_env("BROWSER_PROFILE_KEY"))
+    cipher = AESGCM(base64.urlsafe_b64decode(required_env("BROWSER_PROFILE_KEY")))
     with io.BytesIO() as stream:
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
             archive.add(directory, arcname=".", filter=profile_archive_entry)
-        encrypted = cipher.encrypt(stream.getvalue())
+        nonce = os.urandom(12)
+        encrypted = nonce + cipher.encrypt(nonce, stream.getvalue(), PROFILE_AAD)
         print(f"浏览器加密归档大小：{len(encrypted)} 字节。", flush=True)
         try:
             response = requests.post(profile_url(), data=encrypted, headers={
@@ -82,8 +86,9 @@ def restore_profile(directory):
     if not response.ok:
         raise RuntimeError(f"浏览器目录下载失败（HTTP {response.status_code}）")
     try:
-        plaintext = Fernet(required_env("BROWSER_PROFILE_KEY")).decrypt(response.content)
-    except InvalidToken:
+        cipher = AESGCM(base64.urlsafe_b64decode(required_env("BROWSER_PROFILE_KEY")))
+        plaintext = cipher.decrypt(response.content[:12], response.content[12:], PROFILE_AAD)
+    except (InvalidTag, ValueError):
         raise RuntimeError("浏览器目录解密失败，请核对 BROWSER_PROFILE_KEY；不会尝试明文恢复") from None
     with io.BytesIO(plaintext) as stream:
         with tarfile.open(fileobj=stream, mode="r:gz") as archive:
@@ -94,7 +99,7 @@ def profile_url(authenticated=False):
     return (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/"
             + ("authenticated/" if authenticated else "")
             + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
-            + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz.fernet"))
+            + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz.enc"))
 
 
 def profile_archive_entry(entry):
@@ -119,3 +124,4 @@ def validate_session(data):
         if not isinstance(storage, dict) or any(not isinstance(k, str) or not isinstance(v, str)
                                                 for k, v in storage.items()):
             raise ValueError("网页存储格式错误")
+import base64

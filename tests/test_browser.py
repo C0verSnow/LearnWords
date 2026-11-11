@@ -13,8 +13,8 @@ from unittest.mock import patch
 from src.content import FIELDS
 from src.doubao import Doubao
 from src.main import generate_cards
-from src.session import export_session, save_profile, restore_profile
-from cryptography.fernet import Fernet
+from src.session import export_session, save_profile, restore_profile, PROFILE_AAD
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from scripts.remote_login import apply_command
 
 
@@ -136,17 +136,19 @@ class BrowserTests(unittest.TestCase):
                                              "SUPABASE_URL": config["url"].rstrip("/"),
                                              "SUPABASE_SERVICE_ROLE_KEY": "test-key",
                                              "SUPABASE_SESSION_BUCKET": "browser-sessions",
-                                             "SUPABASE_PROFILE_OBJECT": "doubao-profile.tar.gz.fernet",
+                                             "SUPABASE_PROFILE_OBJECT": "doubao-profile.tar.gz.enc",
                                              "BROWSER_DIRECTORY": str(Path(directory) / "restored"),
-                                             "BROWSER_PROFILE_KEY": Fernet.generate_key().decode()}):
+                                             "BROWSER_PROFILE_KEY": base64.urlsafe_b64encode(AESGCM.generate_key(bit_length=256)).decode()}):
                     cache = bundle / "profile/Default/Cache"
                     cache.mkdir(exist_ok=True)
                     (cache / "discard-me").write_text("Cached asset")
                     save_profile(bundle)
                     encrypted_archive = server.profile_archive
-                    cipher = Fernet(os.environ["BROWSER_PROFILE_KEY"])
+                    cipher = AESGCM(base64.urlsafe_b64decode(os.environ["BROWSER_PROFILE_KEY"]))
                     self.assertFalse(encrypted_archive.startswith(b"\x1f\x8b"))
-                    with tarfile.open(fileobj=io.BytesIO(cipher.decrypt(encrypted_archive)), mode="r:gz") as archive:
+                    decrypted = cipher.decrypt(encrypted_archive[:12], encrypted_archive[12:], PROFILE_AAD)
+                    self.assertLess(len(encrypted_archive), len(decrypted) + 64)
+                    with tarfile.open(fileobj=io.BytesIO(decrypted), mode="r:gz") as archive:
                         self.assertNotIn("./profile/Default/Cache/discard-me", archive.getnames())
                         self.assertIn("./chrome.ini", archive.getnames())
                     browser = Doubao(config)
@@ -192,3 +194,4 @@ class BrowserTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join()
+import base64
