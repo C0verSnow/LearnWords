@@ -1,0 +1,29 @@
+name: Mainland Tailscale exit
+description: Connect an ephemeral runner with the Linux TUN and verify the mainland exit
+inputs:
+  client-id:
+    required: true
+    description: LearnWords OAuth client ID
+  client-secret:
+    required: true
+    description: LearnWords OAuth client secret
+  exit-node:
+    required: true
+    description: Mainland server Tailscale IPv4
+runs:
+  using: composite
+  steps:
+    - uses: tailscale/github-action@v4
+      with:
+        oauth-client-id: ${{ inputs.client-id }}
+        oauth-secret: ${{ inputs.client-secret }}
+        tags: tag:learnwords-ci
+        version: '1.104.5'
+        hostname: learnwords-${{ github.run_id }}-${{ github.run_attempt }}
+        tailscaled-args: --tun=tailscale0
+        args: --accept-dns=true --exit-node=${{ inputs.exit-node }} --exit-node-allow-lan-access=false
+        ping: ${{ inputs.exit-node }}
+        log-mode: quiet
+    - name: Verify TUN, DNS, mainland IP and Doubao HTTP
+      shell: bash
+      run: python -m scripts.check_network

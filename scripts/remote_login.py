@@ -6,31 +6,29 @@ import re
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import urlsplit
 
 import requests
 
 from src.config import load_config
-from src.deepseek import DeepSeek
-from src.session import export_session, save_profile
+from src.doubao import Doubao
+from src.session import save_profile
+from src.network import verify_browser_exit
 
 
 def main():
-    config = load_config()["deepseek"]
-    directory = Path(".session/deepseek-browser")
+    config = load_config()["doubao"]
+    directory = Path(".session/doubao-browser")
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    browser = DeepSeek(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
+    browser = Doubao(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
     try:
         page = browser.page
-        page.get("https://www.cloudflare.com/cdn-cgi/trace")
-        if "loc=HK" not in page.ele("tag:body").text.splitlines():
-            raise RuntimeError("远端浏览器出口不是香港")
-        print("Login Chrome TUN exit country HK confirmed.", flush=True)
-        page.get("https://chat.deepseek.com/")
-        time.sleep(8)
-        page.get(config["login_url"])
-        time.sleep(8)
-        page.listen.start(True)
+        verify_browser_exit(page)
+        page.get(config["url"])
+        if not page.ele(config["authenticated"], timeout=3):
+            page.ele('xpath://button[normalize-space(.)="登录"]', timeout=20).click()
+            phone_login = page.ele('text:手机号登录', timeout=10)
+            if phone_login:
+                phone_login.click()
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             state = snapshot(page)
@@ -42,19 +40,14 @@ def main():
         storage("POST", prefix + "/status.json", {"phase": "ready", **snapshot(page)})
         print("Remote login browser ready; private controls only.", flush=True)
         deadline = time.monotonic() + 900
-        regions = []
         while time.monotonic() < deadline:
             if page.ele(config["authenticated"], timeout=0):
                 state = snapshot(page)
-                path = directory / "deepseek.json"
-                export_session(page, path)
-                storage("POST", os.getenv("SUPABASE_SESSION_OBJECT", "deepseek.json"),
-                        json.loads(path.read_text()))
                 # Chrome must flush its databases before the profile is archived.
                 browser.close()
                 browser = None
                 save_profile(directory)
-                storage("POST", prefix + "/status.json", {"phase": "saved", "login_regions": regions, **state})
+                storage("POST", prefix + "/status.json", {"phase": "saved", **state})
                 print("Remote login completed; session saved privately.", flush=True)
                 return
             command = storage("GET", prefix + "/command.json")
@@ -67,10 +60,9 @@ def main():
                 target = control_target(page, command)
                 apply_command(target, config, command)
                 time.sleep(2)
-                regions.extend(login_regions(page))
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
                                                            "target": snapshot(target) if target is not page else None,
-                                                           "login_regions": regions, **snapshot(page)})
+                                                           **snapshot(page)})
             except Exception as error:
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
                                                            "last_error": type(error).__name__, **snapshot(page)})
@@ -137,9 +129,9 @@ def apply_command(page, config, command):
         page.actions.move_to(tuple(point)).click()
     elif action == "navigate":
         path = command.get("path")
-        if path not in ("/", "/sign_in", "/a/chat"):
-            raise ValueError("Unsupported DeepSeek path")
-        page.get("https://chat.deepseek.com" + path)
+        if path not in ("/", "/chat/"):
+            raise ValueError("Unsupported Doubao path")
+        page.get("https://www.doubao.com" + path)
     elif action != "inspect":
         raise ValueError("Unsupported login action")
 
@@ -173,29 +165,6 @@ def fill_field(element, value):
     element.run_js("this.focus(); this.select();")
     element.owner.actions.type(Keys.BACKSPACE)
     element.input(value)
-
-
-def login_regions(page):
-    regions = []
-    for packet in page.listen.steps(timeout=1):
-        url = urlsplit(packet.url)
-        data = packet.request.postData if "login" in url.path else {}
-        if isinstance(data, str):
-            try:
-                data = json.loads(data)
-            except ValueError:
-                continue
-        if not isinstance(data, dict):
-            data = {}
-        fields = {key: value for key, value in data.items()
-                      if key in ("area_code", "country", "country_code", "region", "phone_code", "dial_code")
-                      and isinstance(value, (str, int))}
-        regions.append({"host": url.netloc, "path": url.path,
-                        "request_keys": list(data), "region_fields": fields,
-                        "network_failed": packet.is_failed,
-                        "error": packet.fail_info.errorText if packet.is_failed else "",
-                        "status": None if packet.is_failed else packet.response.status})
-    return regions
 
 
 def redact_phone(text):

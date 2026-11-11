@@ -79,3 +79,24 @@ Login、Probe、Make cards 均使用已通过实际网卡与无 HTTP 代理出�
 用户随后明确指示“不要无头模式，不要沙箱”，据此采用普通窗口 Chrome，并保留 --no-sandbox 关闭浏览器沙箱。GitHub Actions 使用 Xvfb 虚拟屏幕显示窗口，继续使用现有 DrissionPage、Chrome、香港 TUN 和私有指令通道，不创建额外容器。参考 [Playwright 官方 CI headed 说明](https://playwright.dev/python/docs/ci#running-headed) 和 [GitHub Runner 镜像软件清单](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md)，只借鉴虚拟显示方式，不引入 Playwright。
 
 Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小 1440x1000x24。浏览器默认 headless=False，并移除原先额外的 /dev/shm 调整。此模式只改变实际运行方式，不保证服务端一定放行，也不修改站点验证 SDK 或认证凭据。所有真实结果继续记录到 tasklist.md。
+
+
+## 2026-11-11 大陆 Tailscale Exit Node 与加密归档
+
+用户指定以 Tailscale 替换香港 mihomo；继续保留 GitHub-hosted Runner，不把浏览器迁到出口服务器。未复制第三方代码。
+
+| GitHub 候选 | 维护和许可（本次核对） | 依赖与设计 | 采用与已知限制 |
+| --- | --- | --- | --- |
+| [tailscale/tailscale](https://github.com/tailscale/tailscale) | 38,918 stars，2026-11-11 提交，BSD-3-Clause；[issue #22324](https://github.com/tailscale/tailscale/issues/22324) 有回复 | Go 守护进程、内核 TUN、直连或 DERP 中继、Exit Node | 使用官方客户端管理路由，无额外 TUN 代理；NAT 后可用，但中继性能仍须实测。 |
+| [tailscale/github-action](https://github.com/tailscale/github-action) | 965 stars，2026-11-03 提交，BSD-3-Clause；[issue #319](https://github.com/tailscale/github-action/issues/319) 有讨论 | 官方 Node Action，临时节点、OAuth 标签和 post 清理 | 使用 v4 和固定客户端 1.104.5，显式 tailscale0；凭据只放仓库 Secrets。 |
+| [juanfont/headscale](https://github.com/juanfont/headscale) | 45,577 stars，2026-11-10 提交，BSD-3-Clause；本次未核实 issue 响应，不纳入采用候选 | 自建控制面，仍需 Tailscale 客户端及独立控制服务器 | 与官方托管控制面对比；本项目已有 tailnet，无需再运维控制面。 |
+| [pyca/cryptography](https://github.com/pyca/cryptography) | 7,843 stars，2026-11-11 提交，Apache-2.0/BSD-3-Clause 双许可 | Python 标准加密配方 Fernet，认证后解密 | 使用成熟加密库保护 gzip 归档，不自行拼接加密算法；会将压缩归档装入内存，适用于当前约几十 MB 的目录，不能用于无限大的档案。 |
+| [vernesong/OpenClash](https://github.com/vernesong/OpenClash) | 28,142 stars，2026-10-11 提交，MIT；[issue #5400](https://github.com/vernesong/OpenClash/issues/5400) 有回复 | 既有 OpenWrt 插件，支持局域网设备绕过和 DNS 劫持排除 | 只使用已有的 lan_ac_black_macs 配置，让出口服务器直连；不新增代理或改其他设备分流。 |
+
+依据：[官方 Exit Node 配置](https://tailscale.com/docs/features/exit-nodes)、[GitHub Action](https://github.com/tailscale/github-action)、[Fernet 认证加密](https://cryptography.io/en/latest/fernet/)、[OpenClash 设置源码](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/luasrc/model/cbi/openclash/settings.lua)。OpenWrt 容量与规则评估另见 [评估记录](tailscale-openwrt-assessment.md)。
+
+归档保留完整 User Data 根目录（不是只存 Default），只排除普通缓存、运行锁、socket 与符号链接。先关闭 Chrome，再加密上传；解密验证成功后才解压。旧对象迁移是显式入口，不对明文或错误密钥做自动降级。新对象使用独立名称，迁移回读完成也不等于登录恢复成功。
+
+为保持不同 Linux Runner 的 Cookie 密钥机制一致，Chrome 使用 password-store=basic；静态存储由独立的 BROWSER_PROFILE_KEY 保护。固定 Ubuntu 24.04，Chrome 版本由镜像提供，仍可能升级；跨 Runner 复用必须通过真实 Probe，失效时重新人工登录。以用户所要求的 --no-sandbox 启动会降低 Chrome 沙箱隔离，因此仅在一次性受信任 Runner 使用。
+
+第一阶段普通流量通过 Exit Node；Python 依赖和 GitHub Action 下载在启用出口前完成，后续 GitHub/Supabase/Telegram 仍走当前全局出口，收尾恢复 Runner 路由。第二阶段的域名/IP/App Connector 分流仅预留设计边界，尚未实现，也不声称 Exit Node 原生支持任意域名规则。

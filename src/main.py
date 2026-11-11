@@ -8,7 +8,7 @@ from src.anki import build_package
 from src.archive import build_archive
 from src.config import ROOT, load_config, required_env
 from src.content import parse_content
-from src.deepseek import DeepSeek, LoginExpired
+from src.doubao import Doubao, LoginExpired
 from src.github import GitHub
 from src.pronunciation import pronunciation
 from src.repository import checkpoint, read_json, utc_now, write_json
@@ -102,7 +102,7 @@ def generate_cards(manifest, config, output, manifest_path):
                     cached = read_json(content_path, None)
                     if cached is None:
                         if browser is None:
-                            browser = DeepSeek(config["deepseek"])
+                            browser = Doubao(config["doubao"])
                             browser.restore()
                         content = browser.generate(word)
                         write_json(content_path, content)

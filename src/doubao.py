@@ -1,44 +1,48 @@
 import os
-import tempfile
 import time
 from pathlib import Path
 
 from src.content import parse_content, prompt
-from src.session import read_session, restore_profile, restore_session
+from src.config import ROOT
+from src.network import verify_browser_exit
+from src.session import read_session, restore_profile, restore_session, save_profile
 
 
 class LoginExpired(RuntimeError):
     pass
 
 
-class DeepSeek:
+class Doubao:
     def __init__(self, config, headless=False, profile=None, ini_path=None):
         from DrissionPage import ChromiumOptions, ChromiumPage
 
         self.config = config
-        self.temp = tempfile.TemporaryDirectory(prefix="learnword-browser-") if profile is None else None
+        self.directory = Path(os.getenv("BROWSER_DIRECTORY", ".session/doubao-browser")).resolve()
+        self.persist = False
         if profile is None and os.getenv("SESSION_MODE") == "profile":
-            directory = Path(self.temp.name)
-            restore_profile(directory)
-            profile, ini_path = directory / "profile", directory / "chrome.ini"
-        options = (ChromiumOptions(ini_path=str(ini_path))
-                   if ini_path and Path(ini_path).exists() else ChromiumOptions(read_file=False))
-        options.set_user_data_path(str(profile or self.temp.name))
+            restore_profile(self.directory)
+            profile, ini_path = self.directory / "profile", self.directory / "chrome.ini"
+        profile = Path(profile or self.directory / "profile").resolve()
+        ini_path = Path(ini_path or self.directory / "chrome.ini").resolve()
+        profile.mkdir(mode=0o700, parents=True, exist_ok=True)
+        options = ChromiumOptions(ini_path=str(ini_path if ini_path.exists() else ROOT / "configs/dp.ini"))
+        options.set_user_data_path(str(profile))
         options.set_local_port(9222).headless(headless)
         options.set_argument("--no-sandbox")
         options.set_argument("--window-size=1440,1000")
-        if os.getenv("MIHOMO_TUN") == "1":
-            options.set_argument("--no-proxy-server")
-        elif os.getenv("BROWSER_PROXY"):
-            options.set_proxy(os.environ["BROWSER_PROXY"])
+        options.remove_argument("--proxy-server")
+        options.set_argument("--no-proxy-server")
+        # Linux runners have no shared desktop keyring; encryption at rest is handled by the archive.
+        options.set_argument("--password-store=basic")
         if os.getenv("CHROME_PATH"):
             options.set_browser_path(os.environ["CHROME_PATH"])
-        if ini_path:
-            options.save(str(ini_path))
-            options = ChromiumOptions(ini_path=str(ini_path))
+        options.save(str(ini_path))
+        options = ChromiumOptions(ini_path=str(ini_path))
         self.page = ChromiumPage(options)
 
     def restore(self):
+        if os.getenv("TS_EXIT_NODE"):
+            verify_browser_exit(self.page)
         self.page.get(self.config["url"])
         mode = os.getenv("SESSION_MODE", "none")
         if mode not in ("none", "cookies", "web_storage", "profile"):
@@ -46,6 +50,7 @@ class DeepSeek:
         if mode in ("cookies", "web_storage"):
             restore_session(self.page, read_session(), mode)
         self.check_login()
+        self.persist = mode == "profile"
 
     def generate(self, word):
         self.page.get(self.config["url"])
@@ -61,7 +66,7 @@ class DeepSeek:
     def wait_for_answer(self, tab, word):
         editor = tab.ele(self.config["input"], timeout=15)
         if not editor:
-            raise LoginExpired("DeepSeek输入框不可用，请检查登录和页面选择器")
+            raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.input(prompt(word))
         if self.config.get("send"):
@@ -77,7 +82,7 @@ class DeepSeek:
         stable_since, last = time.monotonic(), ""
         while time.monotonic() < deadline:
             if self.config.get("failed") and tab.ele(self.config["failed"], timeout=0):
-                raise LoginExpired("DeepSeek发送失败，请检查网络出口或页面验证后再重试")
+                raise LoginExpired("豆包发送失败，请检查网络出口或页面验证后再重试")
             answers = tab.eles(self.config["answer"], timeout=0)
             text = answers[-1].text if answers else ""
             if text != last:
@@ -89,13 +94,19 @@ class DeepSeek:
                 except ValueError:
                     pass
             time.sleep(1)
-        raise TimeoutError("DeepSeek未在时限内返回完整内容")
+        raise TimeoutError("豆包未在时限内返回完整内容")
 
     def check_login(self):
+        body = self.page.ele("tag:body").text
+        for message in ("受区域限制", "当前地区暂不支持", "访问过于频繁"):
+            if message in body:
+                self.persist = False
+                raise LoginExpired("豆包页面提示：" + message)
         if not self.page.ele(self.config["authenticated"], timeout=15):
-            raise LoginExpired("DeepSeek登录未确认，请重新登录并检查 authenticated 选择器")
+            self.persist = False
+            raise LoginExpired("豆包登录未确认，请重新登录并检查 authenticated 选择器")
 
     def close(self):
         self.page.quit()
-        if self.temp:
-            self.temp.cleanup()
+        if self.persist:
+            save_profile(self.directory)

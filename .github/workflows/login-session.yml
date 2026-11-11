@@ -1,11 +1,7 @@
-name: Login DeepSeek session
+name: Login Doubao session
 on:
   workflow_dispatch:
     inputs:
-      hk_node:
-        description: Hong Kong candidate index (0 selects the first usable node)
-        type: number
-        default: 0
       login_id:
         description: Private login control identifier; leave empty to inspect only
         required: false
@@ -18,17 +14,19 @@ concurrency:
   queue: max
 jobs:
   login:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      MIHOMO_TUN: '1'
-      MIHOMO_HK_INDEX: ${{ inputs.hk_node || '0' }}
+      TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+      TS_EXPECTED_IPV4: ${{ vars.TS_EXPECTED_IPV4 }}
+      TS_EXPECTED_IPV6: ${{ vars.TS_EXPECTED_IPV6 }}
+      BROWSER_PROFILE_KEY: ${{ secrets.BROWSER_PROFILE_KEY }}
       LOGIN_ID: ${{ inputs.login_id }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: deepseek.json
-      SUPABASE_PROFILE_OBJECT: deepseek-profile.tar.gz
+      SUPABASE_SESSION_OBJECT: doubao.json
+      SUPABASE_PROFILE_OBJECT: doubao-profile.tar.gz.fernet
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,9 +37,15 @@ jobs:
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
-      - name: Start private Hong Kong proxy
-        run: python -m scripts.mihomo
+      - uses: ./.github/actions/tailscale-exit
+        with:
+          client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          client-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          exit-node: ${{ vars.TS_EXIT_NODE }}
       - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.remote_login
-      - name: Stop TUN before runner cleanup
+      - name: Restore runner routing and remove private working files
         if: always()
-        run: sudo pkill -x mihomo || true
+        run: |
+          sudo tailscale set --exit-node= || true
+          pkill -x chrome || true
+          rm -rf .session
