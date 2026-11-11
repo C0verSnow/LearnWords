@@ -1,4 +1,4 @@
-# Suffix rules: observed on the anonymous Doubao page, run 43051895812.
+# Suffix rules: observed in runs 43051895812 (anonymous) and 43057690341 (restored).
 # Exact vendor hosts keep the rest of each vendor/CDN on the runner.
 doubao.com
 99uri.com
@@ -12,4 +12,5 @@ p3-flow-imagex-sign.byteimg.com
 p6-flow-imagex-sign.byteimg.com
 p11-flow-imagex-sign.byteimg.com
 p26-flow-imagex-sign.byteimg.com
+p3-passport.byteacctimg.com
 vcs.zijieapi.com

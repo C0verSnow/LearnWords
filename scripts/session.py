@@ -10,6 +10,7 @@ from pathlib import Path
 
 import requests
 
+from scripts.tailscale_split import target_addresses
 from src.config import load_config, required_env
 from src.doubao import Doubao, LoginExpired
 from src.session import restore_profile, save_profile
@@ -44,7 +45,7 @@ def main():
             started = time.monotonic()
             browser.restore()
             print("Doubao login restore confirmed.", flush=True)
-            browser.page.listen.start(True)
+            browser.page.listen.start(True, method="POST")
             browser.generate("approach")
             print(f"登录恢复及完整内容查询通过，用时 {time.monotonic() - started:.1f} 秒。")
     except (TimeoutError, LoginExpired):
@@ -52,7 +53,7 @@ def main():
 
         storage("POST", "probe/doubao-diagnostic.json", {
             "mode": os.getenv("SESSION_MODE", "profile"), **snapshot(browser.page),
-            "network": completion_status(browser.page)})
+            "network": request_status(browser.page)})
         print("Probe failed; page diagnostic saved privately.", flush=True)
         raise
     finally:
@@ -103,21 +104,25 @@ def migrate_legacy_profile():
     print("旧 profile 已加密迁移并回读核对一致；旧对象保留，登录有效性仍须独立 Probe。", flush=True)
 
 
-def completion_status(page):
-    pending = [{"host": urlsplit(packet.url).hostname,
+def request_status(page):
+    targets = target_addresses()
+    pending = [{"host": urlsplit(packet.url).hostname, "path": urlsplit(packet.url).path,
                 "completion": "completion" in urlsplit(packet.url).path}
                for packet in list(page.listen._request_ids.values())]
     results = []
-    for packet in page.listen.steps(timeout=1):
-        is_completion = "completion" in urlsplit(packet.url).path
-        body = str(packet.response.body) if is_completion and not packet.is_failed else ""
-        results.append({"host": urlsplit(packet.url).hostname, "method": packet.method,
-                        "completion": is_completion, "network_failed": packet.is_failed,
-                        "http_status": None if packet.is_failed else packet.response.status,
-                        "stream_error": "STREAM_ERROR" in body,
-                        "error_710022004": "710022004" in body,
-                        "rate_limited": "rate limited" in body,
-                        "semantic_verification": "semantic_reasoning" in body})
+    for packet in page.listen.steps(count=200, timeout=1):
+        response = packet._raw_response or {}
+        body = None if packet.is_failed else packet.response.body
+        code = next((body[key] for key in ("code", "status_code", "statusCode", "error_code")
+                     if isinstance(body.get(key), int)), None) if isinstance(body, dict) else None
+        results.append({"host": urlsplit(packet.url).hostname, "path": urlsplit(packet.url).path,
+                        "network_failed": packet.is_failed,
+                        "http_status": response.get("status"), "code": code,
+                        "error": (packet._raw_fail_info or {}).get("errorText"),
+                        "protocol": response.get("protocol"), "ip": response.get("remoteIPAddress"),
+                        "worker": response.get("fromServiceWorker", False),
+                        "cached": response.get("fromDiskCache", False),
+                        "in_target_set": response.get("remoteIPAddress") in targets})
     return {"completed": results, "inflight": pending}
 
 

@@ -130,6 +130,12 @@ def nft_element(action, address):
     run('nft', action, 'element', 'inet', 'learnwords', family, '{', address, '}')
 
 
+def target_addresses():
+    data = json.loads(subprocess.check_output(['sudo', 'nft', '-j', 'list', 'table', 'inet', 'learnwords'], text=True))
+    return {element for item in data['nftables'] if 'set' in item
+            for element in item['set'].get('elem', []) if isinstance(element, str)}
+
+
 def route_device(address, marked=False):
     family = '-4' if ipaddress.ip_address(address).version == 4 else '-6'
     command = ['ip', '-j', family, 'route', 'get', address]

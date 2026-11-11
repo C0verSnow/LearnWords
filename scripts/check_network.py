@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 import requests
 
-from scripts.tailscale_split import STATE, domain_names, nft_element, route_device
+from scripts.tailscale_split import STATE, domain_names, nft_element, route_device, target_addresses
 from src.config import load_config, required_env
 from src.network import curl_trace, tailscale_status, verify_exit_trace, verify_runner_trace
 
@@ -99,9 +99,7 @@ def verify_direct_services():
     domains = ['api.github.com', 'pypi.org', 'files.pythonhosted.org']
     if os.getenv('SUPABASE_URL'):
         domains.append(urlsplit(os.environ['SUPABASE_URL']).hostname)
-    sets = json.loads(subprocess.check_output(['sudo', 'nft', '-j', 'list', 'table', 'inet', 'learnwords'], text=True))
-    targets = {element for item in sets['nftables'] if 'set' in item
-               for element in item['set'].get('elem', []) if isinstance(element, str)}
+    targets = target_addresses()
     for domain in domains:
         addresses = {item[4][0] for item in socket.getaddrinfo(domain, 443, socket.AF_INET)}
         if targets.intersection(addresses) or any(route_device(address) != interface for address in addresses):
