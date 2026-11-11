@@ -54,7 +54,7 @@ class BrowserTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "session.json"
                 with patch.dict(os.environ, {"SESSION_MODE": "none", "SUPABASE_URL": ""}):
-                    browser = Doubao(config)
+                    browser = Doubao(config, ini_path=Path(directory) / "chrome.ini")
                     try:
                         browser.restore()
                         browser.page.set.local_storage("local-probe", "value")

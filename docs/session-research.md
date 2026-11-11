@@ -48,3 +48,7 @@
 - 发布失败没有新增 generated 记录，已公开 Release 的 Telegram 通知失败不会撤销成果。
 
 实验结果请继续带 Unix Timestamp 记录到 `tasklist.md`。不要将会话 JSON、用户目录、真实登录日志或密钥提交到公开仓库。
+
+## 远端手机号登录
+
+使用仓库现有 GitHub Actions Runner 打开全新 Chrome，通过 DrissionPage 官方 [ini 配置接口](https://www.drissionpage.cn/advance/ini/)保存并加载 `.session/remote-login.ini`。ini 只保存启动参数，登录会话仍单独导出到私有 Supabase 对象；不把手机号或验证码放进工作流输入、代码或日志。此前 Cookie 与 web_storage 的跨 Runner 探测均出现实际登录页，需按用户要求在远端重新登录后再验证。

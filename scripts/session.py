@@ -9,8 +9,6 @@ from src.session import export_session
 
 def main():
     config = load_config()
-    if os.getenv("LEARNWORDS_DEBUG") == "1":
-        config["doubao"]["timeout"] = 30
     parser = argparse.ArgumentParser(description="人工登录与会话恢复实验，不输出凭据")
     parser.add_argument("action", choices=("capture", "probe"))
     parser.add_argument("--profile", help="仅本机比较用户目录；不要提交或公开上传这个目录")
