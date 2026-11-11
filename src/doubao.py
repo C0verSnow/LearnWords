@@ -48,12 +48,22 @@ class Doubao:
         editor = tab.ele(self.config["input"], timeout=15)
         if not editor:
             raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
+        debug = os.getenv("LEARNWORDS_DEBUG") == "1"
+        if debug:
+            editors = tab.eles(self.config["input"], timeout=0)
+            print("[DEBUG-lw-20261110] editors", len(editors),
+                  [element.states.is_displayed for element in editors], flush=True)
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.input(prompt(word))
+        if debug:
+            print("[DEBUG-lw-20261110] after-input-chars", len(editor.text), flush=True)
         from DrissionPage.common import Keys
         editor.input(Keys.ENTER)
+        if debug:
+            print("[DEBUG-lw-20261110] after-enter-chars", len(editor.text), flush=True)
         deadline = time.monotonic() + self.config["timeout"]
         stable_since, last = time.monotonic(), ""
+        parse_error = "not-attempted"
         while time.monotonic() < deadline:
             answers = tab.eles(self.config["answer"], timeout=0)
             text = answers[-1].text if answers else ""
@@ -63,10 +73,16 @@ class Doubao:
             if text and text not in previous and not busy and time.monotonic() - stable_since >= 4:
                 try:
                     return parse_content(text, word)
-                except ValueError:
+                except ValueError as error:
                     # A syntactically complete response is required even if streaming controls changed.
-                    pass
+                    parse_error = str(error)
             time.sleep(1)
+        if debug:
+            print("[DEBUG-lw-20261110] timeout-state", "answers", len(answers),
+                  "answer-chars", [len(element.text) for element in answers],
+                  "editor-chars", len(editor.text), "busy", bool(busy),
+                  "busy-visible", busy.states.is_displayed if busy else False,
+                  "parse-error", parse_error, flush=True)
         raise TimeoutError("豆包未在时限内返回完整内容")
 
     def check_login(self):

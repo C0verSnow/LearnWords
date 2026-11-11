@@ -5,6 +5,8 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794325831] Telegram 真实私聊 /start 已收到 Webhook 帮助回复；/status 经过 Vercel 查询 GitHub 后正常回复当前聊天还没有制卡任务。
+- [1794325668] Vercel Webhook 已部署至 https://learnwords-kohl.vercel.app/api/telegram；远端鉴权检查错误密钥返回 403、正确密钥返回 200；Telegram setWebhook 已成功并通过 getWebhookInfo 核对目标地址。选择器修正提交 9863153 已推送 main。
 - [1794325493] 已在真实豆包页面查询 approach 并得到完整 JSON；通过 Chrome Application 面板导出 29 个 Cookie、33 项 Local Storage、1 项 Session Storage，写入被忽略的 .session/doubao.json，并上传私有 Supabase 对象后回读核对一致；尚未证明跨 Runner 可恢复。
 - [1794324795] Supabase 两项组织密钥已在页面确认，LEARNWORDS_ENV 完整备份已再次同步并确认保存；组织密钥全部只授权 LearnWords。Vercel 的本人验证页已留给用户，尚未完成部署；豆包登录会话还未导出或验证跨 Runner 恢复。
 - [1794324581] 已保存 LearnWords 的 SUPABASE_URL 与 service_role 到 .env 和 Infisical；已创建并通过 API 核对 browser-sessions 为私有 bucket。尚未上传豆包会话。
@@ -35,6 +37,9 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794356109] Cookie 模式远端 Probe 已确认失败：登录检查通过，卡在完整回答等待超时。已读取固定 DrissionPage 4.1.1.4 发布包源码，排除 Enter 默认清空输入的猜测；按四个可证伪方向添加临时统计日志，仅打印节点数量、可见性、文本长度和固定解析错误，不打印网页正文或密钥。远端 Probe 是当前最小真实复现，因仓库禁止本地验证且真实回答需等待，暂保留其等待时限。
+- [1794355966] 用户要求继续；恢复检查远端会话探测结果，优先处理实际失败点，继续保持不做本地编译验证。
+- [1794325709] 已把仓库 Actions 变量 SESSION_MODE 设为 cookies，并触发 main 的 Probe Doubao session，实验只恢复 Cookie；会话对象含备用网页存储，后续是否启用取决于真实结果。
 - [1794325559] 已用 Chrome Elements 面板核对真实页面，修正 config.yaml 的富文本输入框和已登录账户头像选择器；新对话与回答节点的 data-testid 仍与现有配置一致。准备提交配置并用远端 Probe 验证 Cookie 恢复；不做本地构建或测试。
 - [1794324691] Supabase 两项组织密钥已保存并在页面复核，仅 LearnWords 可用；Vercel 部署提交后出现 Verify Your Identity，已请用户在页面本人完成验证，尚未取得部署成功结果。
 - [1794324084] 已使用新 token 成功触发 main 分支已有 Tests 远端工作流，核对 Actions 写权限；没有运行任何本地构建或测试。Supabase 页面密码未通过强度检查，用户正在自行完成创建。
