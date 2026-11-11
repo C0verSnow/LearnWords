@@ -8,6 +8,12 @@ from src.config import required_env
 TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
 
 
+def restore_runner_route():
+    if os.getenv("GITHUB_ACTIONS") == "true" and os.getenv("TS_EXIT_NODE"):
+        subprocess.run(["sudo", "tailscale", "set", "--exit-node="], check=True, timeout=30)
+        print("浏览器阶段结束，已恢复 Runner 默认路由，后续仅传输加密归档。", flush=True)
+
+
 def verify_browser_exit(page):
     page.get(TRACE_URL)
     trace = parse_trace(page.ele("tag:body").text)

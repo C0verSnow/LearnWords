@@ -18,7 +18,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `base64.urlsafe_b64encode(os.urandom(32)).decode()` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
 7. 手动运行 **Tests**，只在远端执行测试。随后运行 **Probe browser access and session**，先选择 `network`，确认 TUN、IPv4/IPv6、DNS、实际出口及豆包 HTTP。
 8. 对现有未加密对象，只运行一次 Probe 的 `migrate`。它读取旧 `doubao-profile.tar.gz`，加密到独立对象，下载解密回读比对；不会打开浏览器，也不会重新发送短信。
-9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后加密保存更新。应再用一个新 Runner 复验。
+9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后恢复 Runner 默认路由，再加密保存更新。应再用一个新 Runner 复验。
 10. 只有会话确实失效时才运行 **Login Doubao session**。`login_id` 使用 UUID，不含手机号或验证码。通过已有私有 Supabase 单次指令通道填写页面，同一浏览器等待人工操作，成功后先关闭 Chrome，再加密保存完整目录。遇站点本人验证，先完成验证，不能把登录页能打开算作登录成功。
 11. 真实 Probe 通过后，用 **Make cards** 制作一个词，核对 Release ZIP/APKG/manifest 与音频。Telegram 仍按既有 Vercel 入口使用相同工作流；Anki 客户端导入由用户另机验收。
 
@@ -49,7 +49,7 @@ Telegram、GitHub 发布凭据沿用 README 配置。生产 Secrets 不注入不
 
 关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、锁、socket 与符号链接，再用 AES-GCM 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。AESGCM 接口会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
 
-沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。失败时执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
+沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。正常关闭 Chrome 后先退出出口路由，再上传加密档案；失败时仍执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
 
 Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影响 profile。`--password-store=basic` 避免依赖跨 Runner 的桌面密钥服务，但运行目录在 Runner 上仍含敏感数据，必须依靠隔离环境、加密备份及清理。不能保证复制目录一定能恢复登录，应以新 Runner 的真实结果为准。
 
@@ -70,11 +70,11 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 | profile 下载 400/404 | 确认已执行显式 migrate，或已完成一次新 Login；不要把旧 gzip 对象直接改名为 .enc |
 | 登录未确认 | 保存私有诊断，核对实际页面；确实失效才重新登录，不连续发短信 |
 | 返回发送失败 / 710022004 | 停止剩余单词和自动重试，检查账号验证与网站提示，不能用重复查询验收 |
-| GitHub/Supabase 下载超时 | 第一阶段这些流量也可能经过大陆出口；先区分站点连通性和隧道问题，收尾仍恢复 Runner 路由 |
+| GitHub/Supabase 下载超时 | 浏览器运行阶段这些流量也可能经过大陆出口；关闭后的加密备份使用默认网络；先区分站点连通性和隧道问题，收尾仍恢复 Runner 路由 |
 
 ## 后续分流边界
 
-当前是全局出口阶段，Python 依赖在启用出口前安装，浏览器任务期间的 GitHub/Supabase/Telegram 流量仍走当前出口。没有承诺只让豆包走中国大陆，也没有额外安装 mihomo、Clash 或 sing-box。
+当前是全局出口阶段，Python 依赖在启用出口前安装，浏览器任务期间的普通流量仍走当前出口；Chrome 关闭后恢复 Runner 默认网络，再上传加密归档、访问 GitHub 和发送任务通知。没有承诺只让豆包走中国大陆，也没有额外安装 mihomo、Clash 或 sing-box。
 
 未来如需按目标分流，应单独设计豆包关联域名/IP、DNS 解析与 App Connector，并实测 IPv4/IPv6 和工作流控制流量。Tailscale Exit Node 本身不是任意域名规则引擎。
 

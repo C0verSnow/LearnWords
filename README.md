@@ -84,11 +84,11 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 ## 浏览器与网络
 
-源配置为 `configs/dp.ini`，运行时读取并保存 `.session/doubao-browser/chrome.ini`，完整 User Data 根目录是 `.session/doubao-browser/profile/`（包含 Local State、Default、Cookie、LocalStorage、IndexedDB 等）。沿用工作流串行队列，禁止同时打开同一目录。浏览器正常退出后保存加密归档，失败时清理工作目录并断开出口；登录未确认的目录不会覆盖正式归档。
+源配置为 `configs/dp.ini`，运行时读取并保存 `.session/doubao-browser/chrome.ini`，完整 User Data 根目录是 `.session/doubao-browser/profile/`（包含 Local State、Default、Cookie、LocalStorage、IndexedDB 等）。沿用工作流串行队列，禁止同时打开同一目录。浏览器正常退出后保存加密归档，关闭 Chrome 后恢复 Runner 默认路由再上传加密归档；失败时清理工作目录并断开出口；登录未确认的目录不会覆盖正式归档。
 
 `--no-sandbox` 会关闭 Chrome 的浏览器沙箱，降低浏览器隔离强度；这里只用于隔离的一次性受信任 Runner，不在持有生产 Secrets 的不可信 PR 任务中运行。`--password-store=basic` 用于避免依赖不同 Runner 的 Linux 桌面密钥服务，目录在运行期间包含敏感数据，由归档加密保护存储；仍必须实际验证登录恢复，不能保证复制目录就有效。
 
-第一阶段在浏览器任务期间走全局 Exit Node，依赖在切换出口前安装；不是按域名分流。后续若实施分流，需要另行设计，不能把 Exit Node 当作域名规则引擎。
+浏览器任务期间走全局 Exit Node，依赖在切换出口前安装；Chrome 关闭后恢复默认网络，再上传加密归档和发布。这是按任务阶段切换，不是按域名分流。后续若实施分流，需要另行设计，不能把 Exit Node 当作域名规则引擎。
 
 ## 重试与恢复
 
