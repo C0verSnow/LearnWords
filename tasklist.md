@@ -67,6 +67,7 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794412551] 完整关联清单的 Probe 43052516598 已验证两条出口及前 14 个目标解析，但 lf-flow-web-cdn.doubao.com 遇 DNS 临时超时，Chrome 尚未启动、未发消息。改为目标域名同时查询 114/223 两个大陆解析器并经 TUN，其他 DNS 仍经 Runner；解析错误明确显示域名。已建立草稿 PR #3（待真实会话/ZIP 验收），主分支未合并。
 - [1794412009] 对已实际出现过一次 curl 56、随后新 Runner 成功的公开 Cloudflare GET 检查，限定最多 2 次重试；不重试豆包聊天、登录或短信。继续保留最终出口不一致即停止的检查。
 - [1794411512] Probe 43049022058 在 Tailscale 前仍因 archive.ubuntu.com 解析失败而停止，说明只换镜像没有修复 DNS。将三个入口复用现有 bash/apt/resolvectl 的安装脚本：先查普通用户和 _apt 的 DNS，原 DNS 失败才在临时 Runner 切公共解析器并复验，设置 apt 超时/重试边界；不改家中路由器或 Tailnet。
 - [1794411006] Probe 43047717889 失败于 Tailscale 启动前的 apt：azure.archive.ubuntu.com DNS 解析失败，dnsmasq 未安装。已核对 actions/runner-images 官方镜像脚本和 issue #14594，只移除 Runner 镜像列表的 Azure 项，保留 Ubuntu archive/security 官方源和签名校验；同样修正 Tests/Make cards 的依赖安装入口后重跑。

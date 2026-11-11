@@ -81,7 +81,10 @@ def verify_target_exit():
 
 def verify_domain_routes():
     for domain in [*domain_names(), "www.doubao.com", "lf-flow-web-cdn.doubao.com"]:
-        addresses = sorted({item[4][0] for item in socket.getaddrinfo(domain, 443)})
+        try:
+            addresses = sorted({item[4][0] for item in socket.getaddrinfo(domain, 443)})
+        except socket.gaierror as error:
+            raise RuntimeError("目标域名解析失败：" + domain) from error
         if not any(ipaddress.ip_address(address).version == 4 for address in addresses):
             raise RuntimeError("大陆出口没有公网 IPv6，目标域名必须取得 IPv4 地址：" + domain)
         for address in addresses:
