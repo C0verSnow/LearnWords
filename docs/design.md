@@ -63,3 +63,9 @@ DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动
 仅 Probe 工作流设置 MIHOMO_TUN=1；Login 与 Make cards 仍沿用此前 HTTP 代理，避免本次对照扩大到生产流程。mihomo 通过 Runner 自带 sudo 获得创建虚拟网卡和配置路由的权限，启用 LearnWords TUN 网卡，DNS 使用 fake-ip、respect-rules 与独立节点域名解析。Chrome 显式传入 --no-proxy-server，不设置 BROWSER_PROXY。先核对控制接口实际 tun.enable、虚拟网卡存在，以及忽略 HTTP 代理环境变量时出口为 HK，再在 Chrome 内独立检查 HK，最后恢复同一 profile 并只发送一次查询。
 
 失败时私有诊断只保存 completion 的 HTTP 状态和固定错误布尔值，不保存原始响应或验证凭据。无论成功失败，Probe 都停止 root 运行的 mihomo，再执行 Runner 清理。此项用于比较 TUN 与此前 HTTP 代理，不代表 TUN 能解除豆包的账号验证要求。
+
+## 2026-11-11 香港 TUN 下重新迁移 DeepSeek
+
+用户明确授权从 Infisical 输入现有账号密码、选择 +86 地区、勾选页面条款。复用前文已在 GitHub 检索比较的 DeepSeek 独立 profile 设计，以及已有 DrissionPage 私有 Supabase 控制通道，不引入新依赖或复制第三方代码。浏览器从实际已返回 200 的 /sign_in 开始；制卡主页面路径和账户控件在真实登录后核对，不能把登录页可访问算作登录成功。
+
+Login、Probe、Make cards 均使用已通过实际网卡与无 HTTP 代理出口检查的香港 TUN。DeepSeek JSON 与 profile 使用专用对象名，不覆盖豆包对象。私有登录指令读取后删除，账号密码只从 Infisical 进入一次性指令，不进入工作流输入、Git 或公开日志。页面 DOM 控件、输入长度与截图只保存在同一私有 bucket，便于同一个远端浏览器选择地区和处理条款；未凭登录框推断已登录。复杂本人验证保留当前浏览器等待用户。

@@ -1,12 +1,12 @@
 max_cards: 100
 attempts: 2
-doubao:
-  url: https://www.doubao.com/chat/
+deepseek:
+  url: https://chat.deepseek.com/a/chat
+  login_url: https://chat.deepseek.com/sign_in
   timeout: 120
-  input: 'css:[data-testid="chat_input_input"] [contenteditable="true"]'
-  send: 'css:[data-testid="chat_input_send_button"]'
-  answer: 'css:[data-testid="message_text_content"]'
-  generating: 'css:[data-testid="chat_stop_button"]'
-  failed: 'css:[data-testid="message_box_failed_icon"]'
-  new_chat: 'css:[data-testid="create_conversation_button"]'
-  authenticated: 'css:[data-sidebar-footer-account-menu] [data-testid="chat_header_avatar_button"]'
+  input: 'css:textarea'
+  answer: 'css:.ds-markdown'
+  generating: 'css:.ds-loading'
+  authenticated: 'css:._2afd28d[tabindex="0"]'
+  login_user: 'css:input[type="text"]'
+  login_password: 'css:input[type="password"]'

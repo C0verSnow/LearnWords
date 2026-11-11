@@ -51,6 +51,8 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794379405] 已创建 feature/deepseek-tun，复用已有浏览器和私有指令通道迁移至 DeepSeek；Login、Probe、Make cards 统一香港 TUN，会话对象固定 deepseek.json 与 deepseek-profile.tar.gz，不覆盖豆包对象。沿用此前 GitHub 检索比较的开源设计，准备远端登录及 Tests。
+- [1794378849] 用户明确改用 DeepSeek，授权从 Infisical 读取账号密码、选择 +86 地区并勾选页面条款；继续使用香港 TUN，先保留同一个远端浏览器完成实际登录，再保存私有会话和迁移制卡入口。遇本人验证再交给用户，不输出凭据，不运行本地编译或测试。
 - [1794378446] 用户改为询问 https://chat.deepseek.com/ 在香港 TUN 下能否访问；开始复用同一远端 Probe 检查网页、HTTP 状态与验证提示，使用独立空白浏览器目录，不切换制卡入口、不提交账号密码、不重复豆包请求。
 - [1794378392] TUN 改动的远端 Tests 42972022866 首轮在第一个 Chrome 启动处报 BrowserConnectError（127.0.0.1:9222），其余 12 项通过；相同提交仅重跑 Tests 核对，不重跑真实豆包 Probe，不扩大改动。
 - [1794378162] 已按官方文档补充 Probe 专用 TUN 开关：sudo 启动 mihomo、gvisor 虚拟网卡、自动路由和 DNS 劫持；Chrome 使用 --no-proxy-server。先检查实际 TUN 网卡与无 HTTP 代理的香港出口，再恢复同一 profile 发送一次查询；GitHub 已检索官方配置与相关问题并记录 docs/design.md。

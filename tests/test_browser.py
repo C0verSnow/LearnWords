@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.content import FIELDS
-from src.doubao import Doubao
+from src.deepseek import DeepSeek
 from src.main import generate_cards
 from src.session import export_session, save_profile
 
@@ -26,7 +26,7 @@ class BrowserPage(BaseHTTPRequestHandler):
         content = {"Word": "approach", **dict.fromkeys(FIELDS, "An example. 中文说明。")}
         page = """<!doctype html><meta charset="utf-8">
         <div id="account">test account</div><button id="new">new chat</button>
-        <div id="editor" contenteditable="true"></div><button id="send">send</button>
+        <textarea id="editor"></textarea><button id="send">send</button>
         <pre id="answer"></pre>
         <script>
         document.querySelector('#new').onclick = () => {
@@ -35,11 +35,12 @@ class BrowserPage(BaseHTTPRequestHandler):
         document.querySelector('#editor').onkeydown = event => {
           if (event.key === 'Enter') {
             event.preventDefault();
+            document.querySelector('#send').click();
           }
         };
         document.querySelector('#send').onclick = () => {
           document.querySelector('#answer').textContent = RESPONSE;
-          document.querySelector('#editor').textContent = '';
+          document.querySelector('#editor').value = '';
         };
         </script>""".replace("RESPONSE", json.dumps(json.dumps(content, ensure_ascii=False)))
         if self.path == "/rejected":
@@ -77,7 +78,7 @@ class BrowserTests(unittest.TestCase):
         server.rejections = 0
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
-        config = {"attempts": 2, "doubao": {
+        config = {"attempts": 2, "deepseek": {
             "url": f"http://127.0.0.1:{server.server_port}/rejected", "timeout": 5,
             "input": "css:#editor", "send": "css:#send", "answer": "css:#answer",
             "authenticated": "css:#account", "new_chat": "css:#new",
@@ -112,7 +113,7 @@ class BrowserTests(unittest.TestCase):
                 bundle = Path(directory) / "browser"
                 bundle.mkdir()
                 with patch.dict(os.environ, {"SESSION_MODE": "none", "SUPABASE_URL": ""}):
-                    browser = Doubao(config, profile=bundle / "profile", ini_path=bundle / "chrome.ini")
+                    browser = DeepSeek(config, profile=bundle / "profile", ini_path=bundle / "chrome.ini")
                     try:
                         browser.restore()
                         browser.page.set.local_storage("local-probe", "value")
@@ -125,7 +126,7 @@ class BrowserTests(unittest.TestCase):
                                              "SUPABASE_URL": config["url"].rstrip("/"),
                                              "SUPABASE_SERVICE_ROLE_KEY": "test-key",
                                              "SUPABASE_SESSION_BUCKET": "browser-sessions",
-                                             "SUPABASE_PROFILE_OBJECT": "doubao-profile.tar.gz"}):
+                                             "SUPABASE_PROFILE_OBJECT": "deepseek-profile.tar.gz"}):
                     cache = bundle / "profile/Default/Cache"
                     cache.mkdir(exist_ok=True)
                     (cache / "discard-me").write_text("Cached asset")
@@ -133,7 +134,7 @@ class BrowserTests(unittest.TestCase):
                     with tarfile.open(fileobj=io.BytesIO(server.profile_archive), mode="r:gz") as archive:
                         self.assertNotIn("./profile/Default/Cache/discard-me", archive.getnames())
                         self.assertIn("./chrome.ini", archive.getnames())
-                    browser = Doubao(config)
+                    browser = DeepSeek(config)
                     try:
                         browser.restore()
                         self.assertTrue((Path(browser.temp.name) / "chrome.ini").is_file())
@@ -143,7 +144,8 @@ class BrowserTests(unittest.TestCase):
                     finally:
                         browser.close()
                 with patch.dict(os.environ, {"SESSION_MODE": "web_storage", "SESSION_FILE": str(path), "SUPABASE_URL": ""}):
-                    browser = Doubao(config)
+                    enter_config = {key: value for key, value in config.items() if key not in ("send", "new_chat")}
+                    browser = DeepSeek(enter_config)
                     try:
                         browser.restore()
                         self.assertEqual(browser.page.local_storage("local-probe"), "value")

@@ -19,9 +19,9 @@ def parse_content(text, word):
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        raise ValueError("豆包回答不是完整 JSON") from None
+        raise ValueError("DeepSeek回答不是完整 JSON") from None
     if not isinstance(data, dict) or data.get("Word") != word:
-        raise ValueError("豆包回答的单词不匹配")
+        raise ValueError("DeepSeek回答的单词不匹配")
     if any(not isinstance(data.get(key), str) or not data[key].strip() for key in FIELDS):
-        raise ValueError("豆包回答缺少完整的解释字段")
+        raise ValueError("DeepSeek回答缺少完整的解释字段")
     return {key: data[key].strip() for key in ("Word", *FIELDS)}

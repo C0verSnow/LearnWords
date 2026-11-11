@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     env:
+      MIHOMO_TUN: '1'
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_REF: ${{ github.ref_name }}
@@ -42,8 +43,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: deepseek.json
+      SUPABASE_PROFILE_OBJECT: deepseek-profile.tar.gz
       MAX_CARDS: ${{ vars.MAX_CARDS || '100' }}
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +72,9 @@ jobs:
           REQUEST_ID: ${{ inputs.request_id || format('run-{0}', github.run_id) }}
           CHAT_ID: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
         run: python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
+      - name: Stop TUN before runner cleanup
+        if: always()
+        run: sudo pkill -x mihomo || true
       - name: Preserve products and recovery data even on failure
         if: always()
         uses: actions/upload-artifact@v4
