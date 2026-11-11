@@ -22,7 +22,7 @@ class DeepSeek:
             restore_profile(directory)
             profile, ini_path = directory / "profile", directory / "chrome.ini"
         options = (ChromiumOptions(ini_path=str(ini_path))
-                   if ini_path and Path(ini_path).exists() else ChromiumOptions())
+                   if ini_path and Path(ini_path).exists() else ChromiumOptions(read_file=False))
         options.set_user_data_path(str(profile or self.temp.name))
         options.set_local_port(9222).headless(headless)
         options.set_argument("--no-sandbox")

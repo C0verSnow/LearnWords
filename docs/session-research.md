@@ -1,12 +1,12 @@
 # 当前：DeepSeek 香港 TUN 登录迁移
 
-用户已明确改用 DeepSeek，使用 Infisical 的现有账号密码并要求中国大陆 +86 地区。代码迁移位于 feature/deepseek-tun，main 尚未更改；.env 与 Infisical 的会话对象已改为 deepseek.json / deepseek-profile.tar.gz，SESSION_MODE=profile、MIHOMO_TUN=1。豆包对象保留。
+用户已明确改用 DeepSeek，并要求有窗口模式、关闭浏览器沙箱、中国大陆 +86 地区。代码位于 feature/deepseek-tun，main 尚未更改；.env 与 Infisical 的会话对象已改为 deepseek.json / deepseek-profile.tar.gz，SESSION_MODE=profile、MIHOMO_TUN=1。豆包对象保留。
 
-英文登录页没有地区下拉框或条款复选框，条款为登录即同意。表单校验拒绝带 +86 前缀的输入，只接受大陆 11 位号码；尚未捕获到登录业务请求，因此不能声称已验证实际地区参数。账号密码只通过私有一次性通道填写，没有写入仓库或公开工作流输入。
+普通窗口 Login 42979256202 已推进到账号安全验证页，页面明确显示 +86，要求短信验证码。发送按钮已点击一次，正在等待站点安全验证加载，尚未确认短信发送成功；保持同一个远端浏览器，不重复发短信。DeepSeek 登录尚未完成，正式会话、跨 Runner 查询、ZIP 和 Telegram 制卡尚未验收。
 
-当前真实登录未成功：香港候选 1 和 2 下均出现前端 Network Error；候选 2 的摘要显示 AWS WAF 验证和遥测返回 200，没有观察到账号登录接口请求，页面也没有可勾选验证框。未保存 DeepSeek 正式会话，跨 Runner 查询、制卡 ZIP 和 Telegram 制卡仍未验收。已停止空白表单等待，不继续重复提交。
+所有浏览器工作流使用 Xvfb 虚拟屏幕启动普通 Chrome，headless=False、--no-sandbox，不使用额外容器。13 项远端有窗口 Tests 42979249856 全部通过。之前重复填表追加旧值的错误已有同一真实 Chrome 回归先红后绿。本地仅静态检查，没有编译或测试。官方来源和设计比较见 [设计文档](design.md)。
 
-输入替换问题已有真实 Chrome 回归，先红后绿；远端 Tests 42977868125 的 13 项通过。本地仅静态检查，没有编译或测试。普通窗口模式的具体待确认方案见 [设计文档](design.md)。
+英文登录页没有单独地区下拉或条款复选框，条款为登录即同意；实际账号安全验证页已确认 +86。真实凭据只从 Infisical 经私有一次性指令填写，未写入仓库或公开工作流输入。
 
 以下保留此前豆包与 DeepSeek 网页访问对照历史。
 

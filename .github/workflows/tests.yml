@@ -17,6 +17,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y espeak-ng
           python -m pip install -r requirements-worker.txt
+          echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
       - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -v

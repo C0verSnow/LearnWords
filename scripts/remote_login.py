@@ -64,10 +64,12 @@ def main():
             storage("DELETE", prefix + "/command.json")
             action = command.get("action")
             try:
-                apply_command(page, config, command)
+                target = control_target(page, command)
+                apply_command(target, config, command)
                 time.sleep(2)
                 regions.extend(login_regions(page))
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
+                                                           "target": snapshot(target) if target is not page else None,
                                                            "login_regions": regions, **snapshot(page)})
             except Exception as error:
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
@@ -81,6 +83,20 @@ def main():
     finally:
         if browser is not None:
             browser.close()
+
+
+def control_target(page, command):
+    tab_id = command.get("tab_id")
+    if tab_id is not None:
+        if not isinstance(tab_id, str) or not tab_id:
+            raise ValueError("Invalid tab identifier")
+        page = page.browser.get_tab(tab_id)
+    frame = command.get("frame")
+    if frame is not None:
+        if not isinstance(frame, str) or not frame:
+            raise ValueError("Invalid frame selector")
+        page = page.get_frame(frame)
+    return page
 
 
 def apply_command(page, config, command):
@@ -140,7 +156,14 @@ def snapshot(page):
                 if element.states.is_displayed][:150]
     body = redact_phone(page.ele("tag:body").text)
     signals = {term: term in body for term in ("验证码", "验证失败", "操作频繁", "拖动", "滑块", "安全验证")}
+    frames = [{"id": frame.attr("id"), "name": frame.attr("name"), "title": frame.attr("title"),
+               "src": (frame.attr("src") or "").split("?")[0], "style": frame.attr("style"),
+               "displayed": frame.states.is_displayed}
+              for frame in page.get_frames(timeout=0)]
+    tabs = [{"id": tab.tab_id, "url": tab.url.split("?")[0], "title": tab.title}
+            for tab in page.browser.get_tabs()]
     return {"url": page.url.split("?")[0], "fields": fields, "controls": controls, "signals": signals,
+            "frames": frames, "tabs": tabs,
             "notice": body, "screenshot": base64.b64encode(page.get_screenshot(as_bytes="png")).decode()}
 
 

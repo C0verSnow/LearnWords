@@ -11,7 +11,7 @@ Telegram /make 20 random
 
 ## 当前交付边界
 
-Telegram、Vercel Webhook 和私有 Supabase 已配置。按用户要求改用 DeepSeek，所有浏览器工作流沿用已验证的香港 TUN。登录页 /sign_in 可访问，首页 / 仍返回 403；已在两个香港节点私有填写 Infisical 凭据，登录前出现 Network Error，尚未取得登录业务请求或确认地区参数；普通窗口模式对照待确认。登录恢复、真实内容生成和首个 ZIP 尚未完成。结果记录在 tasklist.md；Anki 客户端由用户另机验收。详见 [会话实验](docs/session-research.md)。
+Telegram、Vercel Webhook 和私有 Supabase 已配置。现按用户要求使用 DeepSeek、有窗口 Chrome、关闭浏览器沙箱和香港 TUN。账号已从 Infisical 私有填写，真实安全验证页已确认 +86，正在完成短信验证；正式登录会话、跨 Runner 恢复、内容生成和首个 ZIP 尚未完成。有窗口的 13 项远端 Tests 已通过。结果记录在 tasklist.md；Anki 客户端由用户另机验收。详见 [会话实验](docs/session-research.md)。
 
 ## 指令
 
