@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from src.content import FIELDS
 from src.doubao import Doubao
+from src.main import generate_cards
 from src.session import export_session, save_profile
 
 
@@ -41,12 +42,26 @@ class BrowserPage(BaseHTTPRequestHandler):
           document.querySelector('#editor').textContent = '';
         };
         </script>""".replace("RESPONSE", json.dumps(json.dumps(content, ensure_ascii=False)))
+        if self.path == "/rejected":
+            page = page.replace(
+                "document.querySelector('#answer').textContent = "
+                + json.dumps(json.dumps(content, ensure_ascii=False)) + ";",
+                "fetch('/chat/completion', {method: 'POST'}).then(() => {"
+                "document.querySelector('#answer').innerHTML = '<span id=failed>发送失败</span>';"
+                "});")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         self.wfile.write(page.encode())
 
     def do_POST(self):
+        if self.path == "/chat/completion":
+            self.server.rejections += 1
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.end_headers()
+            self.wfile.write(b'event: STREAM_ERROR\ndata: {"error_code":710022004,"error_msg":"rate limited"}\n\n')
+            return
         self.server.profile_archive = self.rfile.read(int(self.headers["Content-Length"]))
         self.send_response(200)
         self.end_headers()
@@ -57,6 +72,33 @@ class BrowserPage(BaseHTTPRequestHandler):
 
 
 class BrowserTests(unittest.TestCase):
+    def test_rejected_message_stops_remaining_words_without_retry(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
+        server.rejections = 0
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        config = {"attempts": 2, "doubao": {
+            "url": f"http://127.0.0.1:{server.server_port}/rejected", "timeout": 5,
+            "input": "css:#editor", "send": "css:#send", "answer": "css:#answer",
+            "authenticated": "css:#account", "new_chat": "css:#new",
+            "generating": "css:#not-generating", "failed": "css:#failed"}}
+        manifest = {"selected": ["approach", "context"], "succeeded": [], "failed": {}}
+        try:
+            with tempfile.TemporaryDirectory() as directory, \
+                    patch("src.main.ROOT", Path(directory)), \
+                    patch.dict(os.environ, {"SESSION_MODE": "none", "SUPABASE_URL": ""}):
+                root = Path(directory)
+                self.assertEqual(generate_cards(manifest, config, root, root / "manifest.json"), [])
+                self.assertEqual(server.rejections, 1)
+                self.assertEqual(set(manifest["failed"]), {"approach", "context"})
+                for reason in manifest["failed"].values():
+                    self.assertIn("发送失败", reason)
+                self.assertFalse((root / "docs/explanations").exists())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_chrome_query_and_storage_restore_in_fresh_profile(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
