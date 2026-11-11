@@ -25,7 +25,7 @@ def main():
     browser = DeepSeek(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
     try:
         page = browser.page
-        page.get(config["url"])
+        page.get(config["login_url"])
         if not login_id:
             state = snapshot(page)
             print("LOGIN_FORM " + json.dumps({key: state[key] for key in ("fields", "buttons")},
