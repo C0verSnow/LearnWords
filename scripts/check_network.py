@@ -67,6 +67,7 @@ def verify_ipv6():
 def verify_target_exit():
     address = socket.getaddrinfo('www.cloudflare.com', 443, socket.AF_INET, socket.SOCK_STREAM)[0][4][0]
     # A short-lived validation IP exercises the exact target mark/NAT path before Chrome starts.
+    print("正在验证目标 TUN 路径，临时验证 IP：" + address, flush=True)
     nft_element('add', address)
     try:
         trace = curl_trace(4, resolved_ipv4=address)

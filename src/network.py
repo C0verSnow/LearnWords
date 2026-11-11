@@ -43,7 +43,7 @@ def curl_trace(family, resolved_ipv4=None):
     result = subprocess.run(command + [TRACE_URL],
                             capture_output=True, text=True)
     if result.returncode:
-        raise RuntimeError(f"IPv{family} 出口检查失败（curl {result.returncode}）")
+        raise RuntimeError(f"IPv{family} 出口检查失败（curl {result.returncode}）：{result.stderr.strip()}")
     return parse_trace(result.stdout)
 
 

@@ -6,6 +6,7 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794411734] Probe 43050514752 证明 Runner 原 Azure DNS 168.63.129.16 无法解析 Ubuntu；仅在此 Runner 切公共 DNS 后，普通用户和 _apt 解析均成功，Ubuntu 官方源更新及 dnsmasq 安装完成，原始公网出口记录成功。随后目标 TUN 的 Cloudflare 验证出现 curl 56；保留出口验证，补充公开诊断端点的具体 curl 错误和临时 IP，继续新 Runner 复测，不发豆包消息。
 - [1794399627] MSS 限制后的 Probe 43019086706 网络预检全部成功：Runner 普通出口 20.115.229.136，目标实际出口 183.24.92.161/CN；豆包 HTTP 200，无区域限制；三方服务原路由通过，收尾清理成功。临时 SYN 捕获已删除。匿名域名统计遇 data URL 的空 hostname 排序错误，只修正为跳过无主机名资源后再跑，不改分流规则。
 - [1794398895] AESGCM 远端 Tests 43014096866 全部 13 项通过，清理临时查询诊断；真实旧档迁移 43014362177 经 Runner 原出口上传、下载、解密和逐文件比对成功，暂不需要 Cloudflare 存储。App Connector 研究完成，决定采用仅作用于 Runner 的 DNS/nftables 分流，不改服务器身份或 Tailnet 权限。
 - [1794396994] no-first-run 单一改动后的远端 Tests 43012893373 全部 13 项通过；同一有头 Chrome 回归此前失败，现已通过 Cookie/网页存储、ini、加密目录恢复、关闭后保存与拒绝篡改。清理临时 Chrome 启动诊断，删除已停用的香港 mihomo 和 DeepSeek 访问脚本；当前新 AESGCM 格式仍需最终 Tests 和真实迁移验收。
