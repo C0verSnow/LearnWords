@@ -99,6 +99,12 @@ class Doubao:
 
     def check_login(self):
         if not self.page.ele(self.config["authenticated"], timeout=15):
+            if os.getenv("LEARNWORDS_DEBUG") == "1":
+                print("[DEBUG-lw-20261110] login-state", "avatars",
+                      len(self.page.eles('css:[data-testid="chat_header_avatar_button"]', timeout=0)),
+                      "account-menus", len(self.page.eles('css:[data-sidebar-footer-account-menu]', timeout=0)),
+                      "login-buttons", len(self.page.eles('xpath://button[normalize-space(.)="登录"]', timeout=0)),
+                      "html-chars", len(self.page.html), flush=True)
             raise LoginExpired("豆包登录未确认，请重新登录并检查 authenticated 选择器")
 
     def close(self):
