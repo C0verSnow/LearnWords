@@ -37,7 +37,8 @@ def verify_runner_trace(trace):
 
 def curl_trace(family, resolved_ipv4=None):
     command = ["curl", f"-{family}", "--noproxy", "*", "--fail", "--silent",
-               "--show-error", "--connect-timeout", "10", "--max-time", "30"]
+               "--show-error", "--connect-timeout", "10", "--max-time", "30",
+               "--retry", "2", "--retry-all-errors", "--retry-delay", "1"]
     if resolved_ipv4:
         command += ["--resolve", "www.cloudflare.com:443:" + resolved_ipv4]
     result = subprocess.run(command + [TRACE_URL],
