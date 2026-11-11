@@ -6,11 +6,13 @@
     "approach"
   ],
   "created_at": "2026-11-11T17:39:48.071561+00:00",
-  "stage": "packaged",
+  "stage": "published",
   "failed": {},
   "succeeded": [
     "approach"
   ],
   "shortfall": 0,
-  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)",
+  "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-tun-1794418718",
+  "published_at": "2026-11-11T17:40:36.317546+00:00"
 }
