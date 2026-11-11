@@ -1,7 +1,9 @@
 import json
+import io
 import os
 import threading
 import tempfile
+import tarfile
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -82,7 +84,13 @@ class BrowserTests(unittest.TestCase):
                                              "SUPABASE_SERVICE_ROLE_KEY": "test-key",
                                              "SUPABASE_SESSION_BUCKET": "browser-sessions",
                                              "SUPABASE_PROFILE_OBJECT": "doubao-profile.tar.gz"}):
+                    cache = bundle / "profile/Default/Cache"
+                    cache.mkdir(exist_ok=True)
+                    (cache / "discard-me").write_text("Cached asset")
                     save_profile(bundle)
+                    with tarfile.open(fileobj=io.BytesIO(server.profile_archive), mode="r:gz") as archive:
+                        self.assertNotIn("./profile/Default/Cache/discard-me", archive.getnames())
+                        self.assertIn("./chrome.ini", archive.getnames())
                     browser = Doubao(config)
                     try:
                         browser.restore()

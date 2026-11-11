@@ -54,8 +54,7 @@ def export_session(page, path):
 def save_profile(directory):
     with tempfile.TemporaryFile() as stream:
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
-            archive.add(directory, arcname=".",
-                        filter=lambda entry: entry if entry.isfile() or entry.isdir() else None)
+            archive.add(directory, arcname=".", filter=profile_archive_entry)
         stream.seek(0)
         print(f"[DEBUG-profile] archive bytes: {os.fstat(stream.fileno()).st_size}", flush=True)
         try:
@@ -68,6 +67,7 @@ def save_profile(directory):
             raise RuntimeError("浏览器目录上传失败") from None
         if not response.ok:
             print(f"[DEBUG-profile] upload HTTP {response.status_code}", flush=True)
+            print("[DEBUG-profile] size limit: " + str("maximum allowed size" in response.text), flush=True)
             raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
 
 
@@ -93,6 +93,13 @@ def profile_url(authenticated=False):
             + ("authenticated/" if authenticated else "")
             + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
             + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz"))
+
+
+def profile_archive_entry(entry):
+    # Cached assets can exceed the storage upload limit; retain the actual browser databases.
+    caches = {"Cache", "Code Cache", "GPUCache", "ShaderCache", "GrShaderCache", "component_crx_cache"}
+    if (entry.isfile() or entry.isdir()) and not caches.intersection(Path(entry.name).parts):
+        return entry
 
 
 def validate_session(data):
