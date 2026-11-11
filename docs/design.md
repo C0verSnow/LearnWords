@@ -122,3 +122,10 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 另阅读 [mossdef-org/pbr](https://github.com/mossdef-org/pbr)（原 stangri/pbr）作为实现对照：19 stars，2026-11-09 提交，AGPL-3.0，因迁移后星数低不作为主要候选。OpenWrt 依赖 UCI/fw4，不能直接装到 Ubuntu；[issue #112](https://github.com/mossdef-org/pbr/issues/112) 记录同域名多策略 nftset 的限制。本次只有一个目标集合，不引入多出口策略生成器，也不复制其代码。实际使用的是 [dnsmasq 官方 nftset 接口](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) 以及 Ubuntu 已有的 nftables/ip rule。
 
 规则仅存在于短命 Runner；本地 DNS 动态填 IPv4/IPv6 集合，nft output route 标记和专用 postrouting SNAT 交给 Tailscale 表 52，其余查 main。不得仅靠 `ip route get` 宣称成功：远端 network Probe 会实际比较普通 HTTPS 与临时目标 HTTPS 的公网出口，并检查 GitHub/PyPI/Supabase 走原网卡。详细规则、共用 IP 边界与清理步骤见 tailscale.md。
+
+
+## 已观察到的 Chrome 组件缓存膨胀
+
+真实归档从约 42 MB 增至 83.9 MB，目录统计显示主要新增量来自 optimization_guide_model_store（单组约 37.6 MB）、WasmTtsEngine（25.5 MB）和 OnDeviceHeadSuggestModel（7.9 MB）。按 Chromium 官方实现，前者为下载的模型仓库，WasmTtsEngine 为组件更新器安装的离线朗读引擎；本任务使用 eSpeak 生成音频。归档排除这三类可重建组件，继续保留整个根目录下的网站 Cookie、LocalStorage、IndexedDB、Service Worker 数据，以及 Safe Browsing/CertificateRevocation。迁移按实际归档的文件清单逐个回读比对。
+
+来源：[Chromium 模型仓库路径](https://chromium.googlesource.com/chromium/src/+/9f653591077777c26d771184a67d647258fa7478/chrome/browser/optimization_guide/chrome_browser_main_extra_parts_optimization_guide.cc)、[Wasm TTS 组件安装器](https://github.com/chromium/chromium/blob/main/chrome/browser/component_updater/wasm_tts_engine_component_installer.cc)。Supabase Free 单文件上限为 [50 MB](https://supabase.com/docs/guides/storage/uploads/file-limits)，不通过关闭安全数据库或删网站会话数据挤进限制。

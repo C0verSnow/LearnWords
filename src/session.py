@@ -61,6 +61,7 @@ def save_profile(directory):
     with io.BytesIO() as stream:
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
             archive.add(directory, arcname=".", filter=profile_archive_entry)
+            archived_files = {Path(entry.name) for entry in archive.getmembers() if entry.isfile()}
             sizes = {}
             for entry in archive.getmembers():
                 if entry.isfile():
@@ -80,6 +81,7 @@ def save_profile(directory):
             raise RuntimeError(f"浏览器目录上传失败（{type(error).__name__}）") from None
         if not response.ok:
             raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
+        return archived_files
 
 
 def restore_profile(directory):
@@ -111,7 +113,8 @@ def profile_url(authenticated=False):
 
 def profile_archive_entry(entry):
     # Cached assets can exceed the storage upload limit; retain the actual browser databases.
-    caches = {"Cache", "Code Cache", "GPUCache", "ShaderCache", "GrShaderCache", "component_crx_cache"}
+    caches = {"Cache", "Code Cache", "GPUCache", "ShaderCache", "GrShaderCache", "component_crx_cache",
+              "optimization_guide_model_store", "WasmTtsEngine", "OnDeviceHeadSuggestModel"}
     if ((entry.isfile() or entry.isdir()) and not caches.intersection(Path(entry.name).parts)
             and not Path(entry.name).name.startswith("Singleton")):
         return entry

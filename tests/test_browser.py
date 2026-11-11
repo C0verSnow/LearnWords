@@ -142,6 +142,9 @@ class BrowserTests(unittest.TestCase):
                     cache = bundle / "profile/Default/Cache"
                     cache.mkdir(exist_ok=True)
                     (cache / "discard-me").write_text("Cached asset")
+                    model = bundle / "profile/optimization_guide_model_store/43"
+                    model.mkdir(parents=True)
+                    (model / "model.bin").write_bytes(b"Downloaded Chrome prediction model")
                     save_profile(bundle)
                     encrypted_archive = server.profile_archive
                     cipher = AESGCM(base64.urlsafe_b64decode(os.environ["BROWSER_PROFILE_KEY"]))
@@ -151,6 +154,7 @@ class BrowserTests(unittest.TestCase):
                     with tarfile.open(fileobj=io.BytesIO(decrypted), mode="r:gz") as archive:
                         self.assertNotIn("./profile/Default/Cache/discard-me", archive.getnames())
                         self.assertIn("./chrome.ini", archive.getnames())
+                        self.assertNotIn("./profile/optimization_guide_model_store/43/model.bin", archive.getnames())
                     browser = Doubao(config)
                     try:
                         browser.restore()

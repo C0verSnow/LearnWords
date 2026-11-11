@@ -44,7 +44,7 @@ def main():
             started = time.monotonic()
             browser.restore()
             print("Doubao login restore confirmed.", flush=True)
-            browser.page.listen.start("completion", method="POST")
+            browser.page.listen.start(True)
             browser.generate("approach")
             print(f"登录恢复及完整内容查询通过，用时 {time.monotonic() - started:.1f} 秒。")
     except (TimeoutError, LoginExpired):
@@ -52,7 +52,7 @@ def main():
 
         storage("POST", "probe/doubao-diagnostic.json", {
             "mode": os.getenv("SESSION_MODE", "profile"), **snapshot(browser.page),
-            "completion": completion_status(browser.page)})
+            "network": completion_status(browser.page)})
         print("Probe failed; page diagnostic saved privately.", flush=True)
         raise
     finally:
@@ -94,9 +94,9 @@ def migrate_legacy_profile():
     with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as restored:
         with tarfile.open(fileobj=io.BytesIO(response.content), mode="r:gz") as archive:
             archive.extractall(source, filter="data")
-        save_profile(source)
+        archived_files = save_profile(source)
         restore_profile(restored)
-        source_files = {p.relative_to(source): p.read_bytes() for p in Path(source).rglob("*") if p.is_file()}
+        source_files = {path: (Path(source) / path).read_bytes() for path in archived_files}
         restored_files = {p.relative_to(restored): p.read_bytes() for p in Path(restored).rglob("*") if p.is_file()}
         if source_files != restored_files:
             raise RuntimeError("加密迁移后的回读不一致，请保留旧对象排查")
@@ -104,16 +104,21 @@ def migrate_legacy_profile():
 
 
 def completion_status(page):
+    pending = [{"host": urlsplit(packet.url).hostname,
+                "completion": "completion" in urlsplit(packet.url).path}
+               for packet in list(page.listen._request_ids.values())]
     results = []
     for packet in page.listen.steps(timeout=1):
-        body = "" if packet.is_failed else str(packet.response.body)
-        results.append({"network_failed": packet.is_failed,
+        is_completion = "completion" in urlsplit(packet.url).path
+        body = str(packet.response.body) if is_completion and not packet.is_failed else ""
+        results.append({"host": urlsplit(packet.url).hostname, "method": packet.method,
+                        "completion": is_completion, "network_failed": packet.is_failed,
                         "http_status": None if packet.is_failed else packet.response.status,
                         "stream_error": "STREAM_ERROR" in body,
                         "error_710022004": "710022004" in body,
                         "rate_limited": "rate limited" in body,
                         "semantic_verification": "semantic_reasoning" in body})
-    return results
+    return {"completed": results, "inflight": pending}
 
 
 if __name__ == "__main__":

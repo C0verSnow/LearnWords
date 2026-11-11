@@ -83,9 +83,16 @@ class Doubao:
                   connected:this.isConnected, x:r.x, y:r.y, width:r.width, height:r.height,
                   hitInside:hit===this || this.contains(hit), hitTag:hit?.tagName};
                 """)}), flush=True)
+            send_button.run_js("""
+                window.__learnwordsSendClicked = false;
+                this.addEventListener('click', () => {window.__learnwordsSendClicked = true;},
+                                      {once:true, capture:true});
+            """)
             click_result = send_button.click()
             print("[DEBUG-send] " + json.dumps({"click_return_type": type(click_result).__name__,
-                                               "returned_false": click_result is False}), flush=True)
+                                               "returned_false": click_result is False,
+                "dom_received_click": tab.run_js("return window.__learnwordsSendClicked"),
+                "viewport": tab.run_js("return [innerWidth, innerHeight, devicePixelRatio]")}), flush=True)
         else:
             from DrissionPage.common import Keys
 

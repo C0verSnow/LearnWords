@@ -70,7 +70,7 @@ def verify_target_exit():
     print("正在验证目标 TUN 路径，临时验证 IP：" + address, flush=True)
     nft_element('add', address)
     try:
-        trace = curl_trace(4, resolved_ipv4=address)
+        trace = curl_trace(4, resolved_ipv4=address, large_request=True)
         verify_exit_trace(trace)
         print('目标 TUN 路径实际出口：' + trace['ip'] + '，CN，与大陆服务器一致。', flush=True)
     finally:

@@ -47,7 +47,7 @@ Telegram、GitHub 发布凭据沿用 README 配置。生产 Secrets 不注入不
 
 源配置为 `configs/dp.ini`；运行时独立保存在 `.session/doubao-browser/chrome.ini`。完整 User Data 根目录为 `.session/doubao-browser/profile/`，包含 `Local State`、`Default/` 和其他会话数据。ini 不能代替用户目录，不能只保存 `Default/`。
 
-关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、锁、socket 与符号链接，再用 AES-GCM 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。AESGCM 接口会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
+关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、可重新下载的预测/搜索建议模型和离线语音引擎、锁、socket 与符号链接，再用 AES-GCM 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。AESGCM 接口会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
 
 沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。正常关闭 Chrome 后经 Runner 原出口上传加密档案；失败时仍执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
 

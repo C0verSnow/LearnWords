@@ -35,12 +35,14 @@ def verify_runner_trace(trace):
         raise RuntimeError("非目标流量没有保持 Runner 原始出口，停止浏览器任务")
 
 
-def curl_trace(family, resolved_ipv4=None):
+def curl_trace(family, resolved_ipv4=None, large_request=False):
     command = ["curl", f"-{family}", "--noproxy", "*", "--fail", "--silent",
                "--show-error", "--connect-timeout", "10", "--max-time", "30",
                "--retry", "2", "--retry-all-errors", "--retry-delay", "1"]
     if resolved_ipv4:
         command += ["--resolve", "www.cloudflare.com:443:" + resolved_ipv4]
+    if large_request:
+        command += ["--header", "X-LearnWords-Route-Probe: " + "a" * 8192]
     result = subprocess.run(command + [TRACE_URL],
                             capture_output=True, text=True)
     if result.returncode:
