@@ -41,7 +41,7 @@ class Doubao:
         options.save(str(ini_path))
         options = ChromiumOptions(ini_path=str(ini_path))
         if os.getenv("CHROME_LOG_FILE"):
-            print("[DEBUG-chrome-start] " + repr(options.arguments), flush=True)
+            print("[DEBUG-chrome-start] " + repr((options.browser_path, options.address, options.arguments)), flush=True)
         self.page = ChromiumPage(options)
 
     def restore(self):
