@@ -17,16 +17,20 @@ class BrowserPage(BaseHTTPRequestHandler):
         content = {"Word": "approach", **dict.fromkeys(FIELDS, "An example. 中文说明。")}
         page = """<!doctype html><meta charset="utf-8">
         <div id="account">test account</div><button id="new">new chat</button>
-        <textarea></textarea><pre id="answer"></pre>
+        <div id="editor" contenteditable="true"></div><button id="send">send</button>
+        <pre id="answer"></pre>
         <script>
         document.querySelector('#new').onclick = () => {
           document.querySelector('#answer').textContent = '';
         };
-        document.querySelector('textarea').onkeydown = event => {
+        document.querySelector('#editor').onkeydown = event => {
           if (event.key === 'Enter') {
             event.preventDefault();
-            document.querySelector('#answer').textContent = RESPONSE;
           }
+        };
+        document.querySelector('#send').onclick = () => {
+          document.querySelector('#answer').textContent = RESPONSE;
+          document.querySelector('#editor').textContent = '';
         };
         </script>""".replace("RESPONSE", json.dumps(json.dumps(content, ensure_ascii=False)))
         self.send_response(200)
@@ -44,7 +48,7 @@ class BrowserTests(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         config = {"url": f"http://127.0.0.1:{server.server_port}/", "timeout": 20,
-                  "input": "css:textarea", "answer": "css:#answer", "authenticated": "css:#account",
+                  "input": "css:#editor", "send": "css:#send", "answer": "css:#answer", "authenticated": "css:#account",
                   "new_chat": "css:#new", "generating": "css:#not-generating"}
         try:
             with tempfile.TemporaryDirectory() as directory:
