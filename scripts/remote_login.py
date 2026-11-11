@@ -71,7 +71,8 @@ def main():
                 storage("POST", prefix + "/status.json", {"phase": "saved"})
                 print("Remote login completed; session saved privately.", flush=True)
                 return
-            storage("POST", prefix + "/status.json", {"phase": "waiting", **snapshot(page)})
+            storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
+                                                       **snapshot(page)})
         storage("POST", prefix + "/status.json", {"phase": "timeout"})
         raise TimeoutError("Remote login waiting window ended")
     except Exception as error:
@@ -83,7 +84,8 @@ def main():
 
 
 def snapshot(page):
-    fields = [{"type": element.attr("type"), "placeholder": element.attr("placeholder")}
+    fields = [{"type": element.attr("type"), "placeholder": element.attr("placeholder"),
+               "value_length": len(element.value or "")}
               for element in page.eles('tag:input', timeout=0) if element.states.is_displayed]
     buttons = [element.text for element in page.eles('tag:button', timeout=0)
                if element.states.is_displayed]
@@ -93,7 +95,8 @@ def snapshot(page):
     body = page.ele("tag:body").text
     signals = {term: term in body for term in ("重新获取", "验证码已发送", "验证码错误", "验证失败",
                                               "操作频繁", "拖动", "滑块", "安全验证")}
-    return {"fields": fields, "buttons": buttons, "agreements": agreements, "signals": signals}
+    return {"fields": fields, "buttons": buttons, "agreements": agreements, "signals": signals,
+            "notice": re.sub(r"1[0-9]{10}", "[phone]", body)}
 
 
 def storage(method, key, data=None):
