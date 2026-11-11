@@ -62,7 +62,8 @@ class Doubao:
             raise RuntimeError("未找到发送按钮，请更新 send 选择器")
         send_button.click()
         if debug:
-            print("[DEBUG-lw-20261110] after-submit-chars", len(editor.text), flush=True)
+            print("[DEBUG-lw-20261110] after-submit-chars",
+                  [len(element.text) for element in tab.eles(self.config["input"], timeout=0)], flush=True)
             for control in tab.eles('css:[data-testid*="send"], [data-testid*="stop"]', timeout=0):
                 print("[DEBUG-lw-20261110] send-control", control.tag,
                       control.attr("data-testid"), "visible", control.states.is_displayed,
@@ -87,7 +88,8 @@ class Doubao:
             body_text = tab.ele("tag:body").text
             print("[DEBUG-lw-20261110] timeout-state", "answers", len(answers),
                   "answer-chars", [len(element.text) for element in answers],
-                  "editor-chars", len(editor.text), "busy", bool(busy),
+                  "editor-chars", [len(element.text) for element in tab.eles(self.config["input"], timeout=0)],
+                  "busy", bool(busy),
                   "busy-visible", busy.states.is_displayed if busy else False,
                   "parse-error", parse_error, flush=True)
             print("[DEBUG-lw-20261110] page-signals",
