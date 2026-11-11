@@ -59,6 +59,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 | 现象 | 检查与处理 |
 | --- | --- |
+| 安装 dnsmasq/espeak 前报 azure.archive.ubuntu.com 解析失败 | 这发生在连接 Tailscale 之前；工作流移除镜像列表中的 Azure 条目，保留 Ubuntu 官方 archive/security 源，包签名校验不变。参见 [Runner 镜像 issue #14594](https://github.com/actions/runner-images/issues/14594) |
 | Tailscale 授权失败或标签无效 | 核对 OAuth 的 Auth Keys 写权限和精确标签；不要输出 secret 排查 |
 | 找不到出口或未选中 | 确认服务器在线、广播和后台批准均完成，TS_EXIT_NODE 填 Tailscale IPv4 |
 | 没有 tailscale0 | 使用 Linux 内核 TUN，检查工作流 tailscaled-args，不改成 userspace-networking |

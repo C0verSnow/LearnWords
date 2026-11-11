@@ -16,6 +16,7 @@ runs:
     - name: Install domain routing dependencies
       shell: bash
       run: |
+        sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
         sudo apt-get update
         sudo apt-get install -y dnsmasq-base nftables
     - name: Record the original runner network

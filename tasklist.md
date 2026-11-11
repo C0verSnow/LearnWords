@@ -64,6 +64,7 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794411006] Probe 43047717889 失败于 Tailscale 启动前的 apt：azure.archive.ubuntu.com DNS 解析失败，dnsmasq 未安装。已核对 actions/runner-images 官方镜像脚本和 issue #14594，只移除 Runner 镜像列表的 Azure 项，保留 Ubuntu archive/security 官方源和签名校验；同样修正 Tests/Make cards 的依赖安装入口后重跑。
 - [1794410736] 用户要求继续，已重跑不发送消息的匿名域名检查；服务器当前出口仍为 183.24.92.161/CN。调整为先装 Runner 原路由优先规则再选择 Exit Node，收尾先关 Chrome 再撤路由，避免安装/清理阶段改变普通浏览器流量的出口；准备新 Runner 的登录恢复与单次查询。
 - [1794399408] Probe 43018702467 已证明 www/CDN 的所有解析地址入集且三方服务保持直连；SYN 头捕获显示 TUN 上 MSS 1460，SYN-ACK 成功而 TLS 超时。按 Tailscale/nft 官方 MTU 排障文档，仅给出 TUN 的 TCP SYN 增加按路由 MTU 的 MSS 限制，继续原探测验证。
 - [1794399266] 第二轮 Probe 43018159056 已确认普通公网请求保持 Runner、临时目标实际走 183.24.92.161/CN，GitHub/PyPI/Supabase 原路由通过；豆包 TLS 握手超时。按域名未入集、TUN 改路由后的 MSS 两个假设，补充 www/CDN 入集检查及仅含 TCP SYN 头的临时诊断，不记录数据正文。
