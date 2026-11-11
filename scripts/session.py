@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from src.config import load_config
 from src.doubao import Doubao, LoginExpired
@@ -23,6 +24,8 @@ def main():
             print("会话已写入忽略目录；请用全新浏览器分别测试 cookies 和 web_storage。")
         else:
             browser.restore()
+            config["doubao"]["timeout"] = 30
+            browser.page.listen.start("completion", method="POST")
             browser.generate("approach")
             print("本次恢复及消息查询通过；不代表跨系统或后续会话必定有效。")
     except (TimeoutError, LoginExpired):
@@ -34,6 +37,13 @@ def main():
             "elements": [{"id": element.attr("data-testid"), "tag": element.tag,
                           "text": element.text}
                          for element in browser.page.eles('css:[data-testid]', timeout=0)],
+            "failed_icons": [element.parent().html for element in browser.page.eles(
+                'css:[data-testid="message_box_failed_icon"]', timeout=0)],
+            "requests": [{"path": urlsplit(packet.url).path, "failed": packet.is_failed,
+                          "status": None if packet.is_failed else packet.response.status,
+                          "error": packet.fail_info.errorText if packet.is_failed else "",
+                          "body": "" if packet.is_failed else str(packet.response.body)[:10000]}
+                         for packet in browser.page.listen.steps(timeout=1)],
         })
         print("[DEBUG-query] Probe failed; diagnostic saved privately.", flush=True)
         raise
