@@ -12,7 +12,7 @@ import requests
 
 from scripts.tailscale_split import target_addresses
 from src.config import load_config, required_env
-from src.doubao import Doubao, LoginExpired
+from src.doubao import Doubao
 from src.session import restore_profile, save_profile
 
 
@@ -43,12 +43,12 @@ def main():
             print("ini 和完整用户目录已加密保存至私有 Supabase。")
         else:
             started = time.monotonic()
+            browser.page.listen.start(("www.doubao.com", "accounts.doubao.com", "mssdk.bytedance.com"), method="POST")
             browser.restore()
             print("Doubao login restore confirmed.", flush=True)
-            browser.page.listen.start(True, method="POST")
             browser.generate("approach")
             print(f"登录恢复及完整内容查询通过，用时 {time.monotonic() - started:.1f} 秒。")
-    except (TimeoutError, LoginExpired):
+    except (TimeoutError, RuntimeError):
         from scripts.remote_login import snapshot, storage
 
         storage("POST", "probe/doubao-diagnostic.json", {

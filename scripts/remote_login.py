@@ -146,6 +146,12 @@ def snapshot(page):
                  "checked": element.attr("aria-checked"), "text": redact_phone(element.text)[:200]}
                 for element in page.eles('css:button,[role],a,[tabindex],.ds-button,.ds-checkbox,[class*="select"]', timeout=0)
                 if element.states.is_displayed][:150]
+    editors = page.run_js("""
+        return [...document.querySelectorAll('[contenteditable="true"]')].map(e => ({
+          tag:e.tagName, class:e.className, role:e.getAttribute('role'),
+          testid:e.getAttribute('data-testid'), textLength:e.innerText.length,
+          focused:e===document.activeElement, visible:!!e.getClientRects().length}));
+    """)
     body = redact_phone(page.ele("tag:body").text)
     signals = {term: term in body for term in ("验证码", "验证失败", "操作频繁", "拖动", "滑块", "安全验证")}
     frames = [{"id": frame.attr("id"), "name": frame.attr("name"), "title": frame.attr("title"),
@@ -154,7 +160,7 @@ def snapshot(page):
               for frame in page.get_frames(timeout=0)]
     tabs = [{"id": tab.tab_id, "url": tab.url.split("?")[0], "title": tab.title}
             for tab in page.browser.get_tabs()]
-    return {"url": page.url.split("?")[0], "fields": fields, "controls": controls, "signals": signals,
+    return {"url": page.url.split("?")[0], "fields": fields, "editors": editors, "controls": controls, "signals": signals,
             "frames": frames, "tabs": tabs,
             "notice": body, "screenshot": base64.b64encode(page.get_screenshot(as_bytes="png")).decode()}
 
