@@ -29,7 +29,7 @@ class BrowserPage(BaseHTTPRequestHandler):
         page = """<!doctype html><meta charset="utf-8">
         <div id="account">test account</div><button id="new">new chat</button>
         <input id="login-user" type="text"><input id="login-password" type="password">
-        <textarea id="editor"></textarea><button id="send">send</button>
+        <div id="editor" contenteditable="true"><p><br></p></div><button id="send">send</button>
         <pre id="answer"></pre>
         <script>
         document.querySelector('#new').onclick = () => {
@@ -38,12 +38,13 @@ class BrowserPage(BaseHTTPRequestHandler):
         document.querySelector('#editor').onkeydown = event => {
           if (event.key === 'Enter') {
             event.preventDefault();
-            document.querySelector('#send').click();
+
           }
         };
         document.querySelector('#send').onclick = () => {
+          window.submittedText = document.querySelector('#editor').innerText;
           document.querySelector('#answer').textContent = RESPONSE;
-          document.querySelector('#editor').value = '';
+          document.querySelector('#editor').textContent = '';
         };
         </script>""".replace("RESPONSE", json.dumps(json.dumps(content, ensure_ascii=False)))
         if self.path == "/rejected":
@@ -162,7 +163,11 @@ class BrowserTests(unittest.TestCase):
                         self.assertTrue((browser.directory / "chrome.ini").is_file())
                         self.assertEqual(browser.page.local_storage("local-probe"), "value")
                         self.assertIn("probe", [cookie["name"] for cookie in browser.page.cookies()])
+                        browser.page.ele(config["input"]).input("旧草稿")
                         self.assertEqual(browser.generate("approach")["Word"], "approach")
+                        submitted = browser.page.run_js("return window.submittedText")
+                        self.assertNotIn("旧草稿", submitted)
+                        self.assertIn("approach", submitted)
                     finally:
                         browser.close()
                     with patch.dict(os.environ, {"BROWSER_DIRECTORY": str(Path(directory) / "second-runner")}):
