@@ -59,7 +59,7 @@ def start_split():
       chain lw_output {
         type route hook output priority mangle; policy accept;
         meta mark & 0xff0000 == 0x80000 return
-        ip daddr 223.5.5.5 meta l4proto { tcp, udp } th dport 53 meta mark set meta mark | 0x100
+        ip daddr 114.114.114.114 meta l4proto { tcp, udp } th dport 53 meta mark set meta mark | 0x100
         ip daddr @doubao4 counter meta mark set meta mark | 0x100
         ip6 daddr @doubao6 counter meta mark set meta mark | 0x100
       }
@@ -88,7 +88,7 @@ def start_split():
              'log-facility=' + str(DIRECTORY / 'dnsmasq.log')]
     lines.extend('server=' + resolver for resolver in state['dns'])
     for domain in domains:
-        lines.extend(['server=/' + domain + '/223.5.5.5',
+        lines.extend(['server=/' + domain + '/114.114.114.114',
                       'nftset=/' + domain + '/4#inet#learnwords#doubao4,6#inet#learnwords#doubao6'])
     config = DIRECTORY / 'dnsmasq.conf'
     config.write_text('\n'.join(lines) + '\n')

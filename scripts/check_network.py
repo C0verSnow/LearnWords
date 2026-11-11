@@ -82,6 +82,8 @@ def verify_target_exit():
 def verify_domain_routes():
     for domain in [*domain_names(), "www.doubao.com", "lf-flow-web-cdn.doubao.com"]:
         addresses = sorted({item[4][0] for item in socket.getaddrinfo(domain, 443)})
+        if not any(ipaddress.ip_address(address).version == 4 for address in addresses):
+            raise RuntimeError("大陆出口没有公网 IPv6，目标域名必须取得 IPv4 地址：" + domain)
         for address in addresses:
             nft_element('get', address)
             if route_device(address, marked=True) != 'tailscale0':
@@ -106,7 +108,8 @@ def verify_direct_services():
 
 def diagnostics():
     commands = [['ip', '-4', 'rule'], ['ip', '-6', 'rule'], ['ip', '-4', 'route', 'show', 'table', '52'],
-                ['sudo', 'nft', 'list', 'table', 'inet', 'learnwords'], ['resolvectl', 'status'], ['tailscale', 'netcheck']]
+                ['sudo', 'nft', 'list', 'table', 'inet', 'learnwords'], ['resolvectl', 'status'],
+                ['resolvectl', 'query', '--type=A', 'www.doubao.com'], ['tailscale', 'netcheck']]
     for command in commands:
         try:
             result = subprocess.run(command, capture_output=True, text=True, timeout=25)

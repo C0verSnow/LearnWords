@@ -79,7 +79,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 | 目标 | DNS | 数据出口 |
 | --- | --- | --- |
-| 清单内域名及子域名 | 大陆 DNS 223.5.5.5，经 Tailscale | 大陆 192.168.1.245 的 Exit Node |
+| 清单内域名及子域名 | 大陆 DNS 114.114.114.114，经 Tailscale | 大陆 192.168.1.245 的 Exit Node |
 | GitHub、Supabase、PyPI、其他地址 | Runner 原始 DNS | Runner 原出口 |
 | Tailscale 自身连接 | 官方 underlay 标记及路由 | Runner 原出口 |
 
