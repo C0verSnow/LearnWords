@@ -38,3 +38,5 @@ Probe 已改为 MIHOMO_TUN=1，开启虚拟网卡、自动路由及 DNS 劫持�
 ## DeepSeek 网页访问对照
 
 用户随后指定检查 https://chat.deepseek.com/。在同一 Probe 工作流选择 target=deepseek，复用相同香港 TUN 设置；用全新独立 Chrome 目录依次读取根页面和 /sign_in，记录主文档 HTTP 状态、密码框/聊天框以及 CloudFront/浏览器验证提示。此检查仅访问页面，不读取或提交 DeepSeek 账号密码，不改变豆包制卡入口。页面诊断只保存到现有私有 bucket。
+
+[DeepSeek 访问检查 42972760085](https://github.com/C0verSnow/LearnWords/actions/runs/42972760085) 实测结果：香港 TUN 与 Chrome 出口均通过 HK 检查。首页 `/` 返回 CloudFront 403；`/sign_in` 主文档返回 200，标题为 DeepSeek - Into the Unknown，密码输入框可见，没有检测到浏览器挑战页。账号登录和对话仍未测试，不能将登录页可打开记为登录成功。TUN 对照代码的远端 Tests 42972022866 第 2 次运行已通过，首次失败在 Chrome 连接阶段；未为此增加代码或本地测试。

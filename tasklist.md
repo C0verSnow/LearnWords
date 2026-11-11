@@ -5,6 +5,8 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794378694] DeepSeek 香港 TUN 访问检查 42972760085 完成：同一香港候选 1，TUN 网卡及无 HTTP 代理出口、Chrome 出口均 HK；https://chat.deepseek.com/ 主文档返回 CloudFront 403，/sign_in 返回 200、标题正常且密码输入框可见，未发现浏览器挑战提示。未提交账号密码，未验证登录或对话；TUN 已随工作流清理，制卡入口与 main 未改。
+- [1794378603] 同一提交的远端 Tests 42972022866 第 2 次运行通过，未为首次 Chrome 连接失败增加额外代码；真实豆包 TUN Probe 保持只有一次查询。DeepSeek 网页访问对照已在相同 TUN 配置启动，只检查页面，不读取账号密码。
 - [1794378392] TUN 单次对照 Probe 42972029205 已完成：控制接口确认启用、LearnWords 虚拟网卡存在、不设置 HTTP 代理的请求与 Chrome 出口均 HK，profile 登录恢复成功；只发送一次 completion，HTTP 200 内仍为 STREAM_ERROR / 710022004 / rate limited，服务端仍要求 semantic_reasoning 验证。已执行 TUN 清理，不再重复发送豆包请求。
 - [1794377792] 清理临时采集后的最终远端 Tests 42971075743 通过；功能代码已验证，后续本次提交仅补充测试结果记录。当前分支 feature/doubao-mihomo，main 未更改；剩余是真实豆包人工验证、ZIP 和 Telegram 制卡验收。未运行本地编译或测试。
 - [1794377675] 香港代理代码已推送 feature/doubao-mihomo；Probe 42970493648 确认单次 completion 被服务端验证要求拒绝。已移除临时响应采集并清理私有诊断；保留正常失败截图文字诊断与停止重试流程。GitHub 已检索相关功能并在 docs/design.md 留存来源；未进行本地编译验证。
