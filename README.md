@@ -11,7 +11,7 @@ Telegram /make 20 random
 
 ## 当前交付边界
 
-Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，GitHub-hosted Ubuntu Runner 使用 Tailscale 内核 TUN，经大陆服务器 192.168.1.245 访问互联网；Chrome 使用 Xvfb 有头模式，不设置浏览器代理。完整用户目录和 ini 关闭后加密保存到私有 Supabase。大陆服务器已实测 CN 出口；远端连接、加密迁移、登录恢复及首个 ZIP 的最新验收结果见 tasklist.md，不把已有登录记录当作本次验收通过。
+Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，GitHub-hosted Ubuntu Runner 使用 Tailscale 内核 TUN，仅让豆包目标地址经大陆服务器 192.168.1.245 出口，其余保持 Runner 原出口；Chrome 使用 Xvfb 有头模式，不设置浏览器代理。完整用户目录和 ini 关闭后加密保存到私有 Supabase。大陆服务器已实测 CN 出口；远端连接、加密迁移、登录恢复及首个 ZIP 的最新验收结果见 tasklist.md，不把已有登录记录当作本次验收通过。
 
 从零配置、故障排查与分流边界见 [Tailscale 部署指南](docs/tailscale.md)。OpenWrt 评估见 [评估记录](docs/tailscale-openwrt-assessment.md)，本次选择继续使用独立服务器。
 

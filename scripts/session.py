@@ -70,6 +70,8 @@ def inspect_page_domains(config):
         hosts = {}
         for packet in browser.page.listen.steps(timeout=1):
             host = urlsplit(packet.url).hostname
+            if not host:
+                continue
             hosts.setdefault(host, set()).add("failed" if packet.is_failed else str(packet.response.status))
         print("豆包匿名页面实际请求域名与状态（无路径、正文或凭据）：", flush=True)
         print(json.dumps({host: sorted(statuses) for host, statuses in sorted(hosts.items())}, ensure_ascii=False), flush=True)

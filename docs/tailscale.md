@@ -74,7 +74,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 ## 当前 TUN 分流规则
 
-`configs/doubao-domains.txt` 每行一个 DNS 后缀，匹配该名称及其子域名。当前包含 `doubao.com` 和页面实际引用的 `lf3-short.ibytedapm.com`；没有把整个字节 CDN 加入规则。新增域名须先观察真实请求，再通过 network Probe 复验。
+`configs/doubao-domains.txt` 每行一个 DNS 后缀，匹配该名称及其子域名。当前包含 `doubao.com` 和页面实际引用的 `lf3-short.ibytedapm.com`；没有把整个字节 CDN 加入规则。新增域名须先观察真实请求，再通过 network Probe 复验。Probe 的 `domains` 入口用独立空白目录观察匿名页面，只输出主机名和 HTTP 状态，不发消息或保存正式会话。
 
 | 目标 | DNS | 数据出口 |
 | --- | --- | --- |
