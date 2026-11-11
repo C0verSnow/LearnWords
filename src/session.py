@@ -10,11 +10,11 @@ from src.config import required_env
 
 
 def read_session():
-    path = Path(os.getenv("SESSION_FILE", ".session/deepseek.json"))
+    path = Path(os.getenv("SESSION_FILE", ".session/doubao.json"))
     if os.getenv("SUPABASE_URL"):
         url = (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/authenticated/"
                + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
-               + os.getenv("SUPABASE_SESSION_OBJECT", "deepseek.json"))
+               + os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"))
         try:
             response = requests.get(url, headers={
                 "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
@@ -56,7 +56,6 @@ def save_profile(directory):
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
             archive.add(directory, arcname=".", filter=profile_archive_entry)
         stream.seek(0)
-        print(f"[DEBUG-profile] archive bytes: {os.fstat(stream.fileno()).st_size}", flush=True)
         try:
             response = requests.post(profile_url(), data=stream, headers={
                 "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
@@ -66,8 +65,6 @@ def save_profile(directory):
         except requests.RequestException:
             raise RuntimeError("浏览器目录上传失败") from None
         if not response.ok:
-            print(f"[DEBUG-profile] upload HTTP {response.status_code}", flush=True)
-            print("[DEBUG-profile] size limit: " + str("maximum allowed size" in response.text), flush=True)
             raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
 
 
@@ -92,7 +89,7 @@ def profile_url(authenticated=False):
     return (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/"
             + ("authenticated/" if authenticated else "")
             + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
-            + os.getenv("SUPABASE_PROFILE_OBJECT", "deepseek-profile.tar.gz"))
+            + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz"))
 
 
 def profile_archive_entry(entry):

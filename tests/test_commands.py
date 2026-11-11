@@ -29,7 +29,7 @@ class CommandTests(unittest.TestCase):
             parse_update({"update_id": True}, {"9"})
 
     def test_session_is_an_explicit_versioned_experiment(self):
-        valid = {"version": 1, "cookies": [{"name": "a", "value": "b", "domain": ".deepseek.com"}],
+        valid = {"version": 1, "cookies": [{"name": "a", "value": "b", "domain": ".doubao.com"}],
                  "local_storage": {}, "session_storage": {}}
         validate_session(valid)
         for invalid in ({}, {**valid, "cookies": "cookie"}, {**valid, "local_storage": {"x": 1}}):

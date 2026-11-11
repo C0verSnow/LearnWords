@@ -38,12 +38,12 @@ jobs:
       GITHUB_REF: ${{ github.ref_name }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      SESSION_MODE: ${{ vars.SESSION_MODE || 'profile' }}
+      SESSION_MODE: ${{ vars.SESSION_MODE || 'none' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'deepseek.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'deepseek-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
+      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
       MAX_CARDS: ${{ vars.MAX_CARDS || '100' }}
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +62,8 @@ jobs:
           python -m pip install -r requirements-worker.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Start private Hong Kong proxy
+        run: python -m scripts.mihomo
       - name: Generate, checkpoint, publish and notify
         env:
           COUNT: ${{ inputs.count }}

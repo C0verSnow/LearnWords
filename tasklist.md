@@ -36,11 +36,18 @@
 - [1794301047] 同步了只有 README 的远端仓库，读完 issue 和补充讨论，建立 feature 分支。
 
 ## 没做：
+- [1794376534] 按用户要求暂停 192.168.1.245 部署评估。已取得部分只读检查结果，尚未完成评估结论；未安装依赖、未部署 LearnWords、未进行本地编译验证。后续等待用户恢复。
 - [1794322384] 当前仍缺 Webhook 专用 GitHub 凭据、Supabase 项目选择及会话对象、Vercel 部署与真实制卡验收；PR #2 原先要求等 review，已向用户询问是否合并。豆包已由用户完成网页登录，但跨 Runner 恢复没有验证。
 - [1794302078] 用户尚无账号配置，本次未部署 Vercel/Telegram/Supabase，未验证豆包线上选择器、跨 Runner 登录恢复或 Anki 客户端导入；README 和 docs/session-research.md 已列出配置与验收步骤。
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794377217] 已将运行入口、选择器、会话对象和工作流回退豆包；新增云端 mihomo 香港出口检查与 Chrome 显式代理，恢复真实浏览器发送失败回归；GitHub 已检索比较官方 mihomo 和 Clash Verge Rev，来源记录 docs/design.md，准备远端 Tests 与 Probe。
+- [1794377086] 用户确认继续使用 GitHub Actions；订阅实际写在 .env 的 url: 后，已规范为 MIHOMO_SUBSCRIPTION_URL，并私有同步至 Infisical 和现有 Supabase bucket，供远端启动 mihomo 使用；不记录链接内容。
+- [1794376850] 用户要求回退到豆包并在远端使用 mihomo 香港节点，开始核对当前分支、私有会话、远端工作流和首个 ZIP 缺项；优先读取本仓库 .env，不输出订阅或密钥，不运行本地编译或测试。
+- [1794376304] 用户改为先评估 root@192.168.1.245，计划后续由 deploy 在 /home/deploy/LearnWords 运行 Python。此次只读检查硬件资源、系统依赖、浏览器/图形环境和 DeepSeek 连通性，不安装、不部署、不进行本地编译验证。
+- [1794376172] 用户询问 CloakBrowser 开源为何还需 key，暂停免费 key 申请。已核对包装器 MIT 与 BINARY-LICENSE.md 的浏览器二进制专有许可是两回事；当前仅打开申请页，未填写邮箱、创建账号或取得 key。
+- [1794376039] 远端 Login 42967843943 访问 DeepSeek 根路径得到 CloudFront 403，尚未读取或发送登录凭据；停止该次等待，改为直达 /sign_in 对照。CloakBrowser 当前 README 要求许可证 key，已向用户询问现有 key，不注册新账号或新增授权。
 - [1794375928] 已迁移制卡入口、提示解析错误、工作流和会话对象默认值至 DeepSeek；远端登录改为账号密码私有指令，保留 ini 与完整用户目录、关闭 Chrome 后归档。已比较相关 GitHub 项目并记录 docs/design.md，准备远端 Tests 与真实登录。
 - [1794375853] 用户补充：若实际遇到自动化检测，可考虑 CloakHQ/cloakbrowser；先查维护、许可与 ini/用户目录兼容性，当前不擅自新增依赖。已从 Infisical 私有读取 DEEPSEEK_USRE 与 DEEPSEEK_PASSWORD。
 - [1794375507] 用户改为 chat.deepseek.com：停止豆包修复与重复探测，开始检索 DeepSeek 网页自动化参考、读取 Infisical 内指定账号并迁移现有浏览器制卡流程；遇图形验证码交给用户完成，不做本地编译验证。

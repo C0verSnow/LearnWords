@@ -45,3 +45,13 @@ DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动
 | [CloakHQ/cloakbrowser](https://github.com/CloakHQ/cloakbrowser) | 32,825 stars，2026-11-10 有提交；仓库包装器 MIT | 修改后的 Chromium、Playwright/Puppeteer 包装器、约 200 MB 下载；当前 README 表明每次启动需要许可证 key，支持持久用户目录 | 用户指定的条件性备选。现不引入；若实际遇到自动化检测，再核实 DrissionPage 二进制接入、浏览器发行许可与已有 key。README 的检测通过宣传不等于 DeepSeek 已验证可用。 |
 
 新会话对象默认 `deepseek-profile.tar.gz`，不覆盖豆包对象。登录成功后关闭 Chrome，再归档 chrome.ini 和 profile 下的 Cookie、Local Storage、IndexedDB 等文件；仍排除普通网页缓存与运行中锁/socket。账号密码由 Infisical 读取，兼容用户现有键 `DEEPSEEK_USRE`，通过现有私有一次性指令通道填入远端网页，不进入公开 Actions 输入或日志。图形验证码保留同一个浏览器等待处理，不自动循环尝试。
+
+## 2026-11-11 回退豆包并使用香港 mihomo
+
+本次在 GitHub 检索并核对 [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo)（35,669 stars，2026-11-11 有提交，当前仓库声明 MIT；近期关闭 issue #3409、#3408 有讨论）与 [clash-verge-rev/clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)（157,705 stars，GPL-3.0，2026-11-11 有提交，近期发布 v2.5.10，2026-11-10 的 issue #8618、#8616 有回复）。后者是 Rust/Tauri 桌面壳并使用 mihomo 内核，Runner 无需桌面管理器，因此直接用官方 mihomo 发布二进制，不引入 GUI 或其他代理框架，不复制第三方代码。
+
+参考 [mihomo 配置](https://wiki.metacubex.one/en/config/general/)、[代理组](https://wiki.metacubex.one/en/config/proxy-groups/) 与 [DrissionPage 浏览器启动代理](https://www.drissionpage.cn/browser_control/browser_options/)。采用回环 HTTP/mixed 代理和固定 select 组：启动时筛选香港节点，逐个验证真实 HK 出口后保持当前节点，不按测速自动切换。只让 Chrome 使用代理，不设置全局 HTTP_PROXY，也不安装 TUN 或改 Runner 路由。节点显示香港不代表实际出口为香港，所以以 Cloudflare trace 国家检查为准；Chrome 再独立核对其真实出口。香港出口可用不等于豆包一定接受，仍以真实页面查询为准。
+
+固定 mihomo v1.19.33 的 linux-amd64-compatible 压缩包，SHA-256 取自官方 Release asset digest。订阅需为含 proxies 的 Clash/mihomo YAML；不实现其他订阅格式转换。订阅与节点配置沿用现有私有 Supabase 通道及 .session 忽略目录，不扩展 GitHub token 权限。控制接口与 mixed 端口只监听 127.0.0.1，进程随一次性 Runner 结束销毁。
+
+回退时恢复了原豆包按钮提交方式和已有“发送失败只发一次，停止后续单词”的远端浏览器回归。页面出现明确失败图标时，沿用现有停止流程，不连续重试被拒绝的消息。

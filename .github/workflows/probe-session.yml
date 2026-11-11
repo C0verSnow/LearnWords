@@ -1,4 +1,4 @@
-name: Probe DeepSeek session
+name: Probe Doubao session
 on:
   workflow_dispatch:
     inputs:
@@ -21,8 +21,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'deepseek.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'deepseek-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
+      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,4 +31,6 @@ jobs:
       - run: |
           python -m pip install -r requirements-worker.txt
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - name: Start private Hong Kong proxy
+        run: python -m scripts.mihomo
       - run: python -m scripts.session probe

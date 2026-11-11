@@ -11,7 +11,7 @@ class LoginExpired(RuntimeError):
     pass
 
 
-class DeepSeek:
+class Doubao:
     def __init__(self, config, headless=True, profile=None, ini_path=None):
         from DrissionPage import ChromiumOptions, ChromiumPage
 
@@ -28,6 +28,8 @@ class DeepSeek:
         options.set_argument("--no-sandbox")
         options.set_argument("--disable-dev-shm-usage")
         options.set_argument("--window-size=1440,1000")
+        if os.getenv("BROWSER_PROXY"):
+            options.set_proxy(os.environ["BROWSER_PROXY"])
         if os.getenv("CHROME_PATH"):
             options.set_browser_path(os.environ["CHROME_PATH"])
         if ini_path:
@@ -47,21 +49,29 @@ class DeepSeek:
     def generate(self, word):
         self.page.get(self.config["url"])
         self.check_login()
-        # The root URL opens a fresh conversation while retaining the tab's session storage.
-        return self.wait_for_answer(self.page, word)
+        tab = self.page
+        new_chat = tab.ele(self.config["new_chat"], timeout=10)
+        if not new_chat:
+            raise RuntimeError("未找到新建聊天按钮，请更新 new_chat 选择器")
+        new_chat.click()
+        # Keep the tab so an experimentally required sessionStorage survives new conversations.
+        return self.wait_for_answer(tab, word)
 
     def wait_for_answer(self, tab, word):
-        from DrissionPage.common import Keys
-
         editor = tab.ele(self.config["input"], timeout=15)
         if not editor:
-            raise LoginExpired("DeepSeek输入框不可用，请检查登录和页面选择器")
+            raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.input(prompt(word))
-        editor.input(Keys.ENTER)
+        send_button = tab.ele(self.config["send"], timeout=15)
+        if not send_button:
+            raise RuntimeError("未找到发送按钮，请更新 send 选择器")
+        send_button.click()
         deadline = time.monotonic() + self.config["timeout"]
         stable_since, last = time.monotonic(), ""
         while time.monotonic() < deadline:
+            if self.config.get("failed") and tab.ele(self.config["failed"], timeout=0):
+                raise LoginExpired("豆包发送失败，请检查网络出口或页面验证后再重试")
             answers = tab.eles(self.config["answer"], timeout=0)
             text = answers[-1].text if answers else ""
             if text != last:
@@ -73,11 +83,11 @@ class DeepSeek:
                 except ValueError:
                     pass
             time.sleep(1)
-        raise TimeoutError("DeepSeek未在时限内返回完整内容")
+        raise TimeoutError("豆包未在时限内返回完整内容")
 
     def check_login(self):
         if not self.page.ele(self.config["authenticated"], timeout=15):
-            raise LoginExpired("DeepSeek登录未确认，请重新登录并检查 authenticated 选择器")
+            raise LoginExpired("豆包登录未确认，请重新登录并检查 authenticated 选择器")
 
     def close(self):
         self.page.quit()

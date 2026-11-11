@@ -1,28 +1,28 @@
-# DeepSeek 登录恢复与远端验收
+# 豆包香港出口与远端验收
 
-按用户要求迁移至 https://chat.deepseek.com/，正式方案为 **ini + 完整用户目录**。此前豆包已恢复登录，但真实 completion 返回 `710022004 / rate limited` 和验证要求，未生成首个 ZIP；豆包实验历史保留在 tasklist.md，不把其结果当作 DeepSeek 已通过的证据。
+按用户要求从 DeepSeek 回退到 https://www.doubao.com/chat/，继续使用 GitHub Actions。已有私有 `doubao.json` 和 `doubao-profile.tar.gz` 均存在；此前 profile 在新 Runner 恢复过登录，但消息发送被拒绝。香港节点是否可正常登录和查询，以本轮真实 Probe 结果为准。
 
-## 会话保存
+## 运行顺序
 
-1. 运行远端 **Login DeepSeek session**，输入仅为随机 login_id。账号来自 Infisical LearnWords/dev，当前键名为 `DEEPSEEK_USRE` 与 `DEEPSEEK_PASSWORD`。
-2. 通过已有私有 Supabase 一次性指令通道填入账号密码并提交。状态与页面截图仅保存在同一私有 bucket。遇到图形验证保留浏览器，处理后继续，不重复启动登录或连续提交。
-3. 已登录标记必须是账户控件，不能仅凭输入框判断。登录成功后关闭 Chrome，待数据库写回，再归档 `chrome.ini` 和 `profile/`。
-4. 归档保存为私有 `browser-sessions/deepseek-profile.tar.gz`。包含 Cookie、Local Storage、IndexedDB 等用户数据；普通缓存和运行锁/socket 不属于需要恢复的登录数据，继续排除以符合存储上传大小限制。
-5. **Probe DeepSeek session** 使用新 Ubuntu Runner 下载归档，以 ini 加载参数，并将用户目录路径和 Chrome 路径改为当前 Runner 的实际位置。必须真实查询 approach 并解析完整 JSON，才算恢复与查询通过。
-6. 第二个新 Runner 重复探测，再用 **Make cards** 制作一个词并检查 Release ZIP。Telegram、Vercel 和 Release 流程沿用现有实现；Anki 导入由用户在另一台电脑完成。
+1. `.env` 使用标准 `MIHOMO_SUBSCRIPTION_URL=...`；`.env.example` 仅保留空值示例。订阅同时保存在 Infisical LearnWords/dev，以及既有私有 Supabase bucket 的 `proxy/subscription.json`（`url` 字段），不进入 Git、Actions 输入、artifact 或 Release。
+2. Login、Probe、Make cards 安装已有 Python 依赖后运行 `python -m scripts.mihomo`。下载固定版本 mihomo 并校验 SHA-256；只从订阅挑选香港节点，生成配置保存在被忽略的 `.session/mihomo/`。
+3. mihomo 仅监听 Runner 回环地址，通过代理访问 Cloudflare trace，实际国家为 HK 才继续；失败不退回直连或其他地区。通过 `GITHUB_ENV` 设置 `BROWSER_PROXY`，DrissionPage 启动 Chrome 时显式设置代理，Supabase、GitHub 和 Telegram 仍按既有网络直连。
+4. **Probe Doubao session** 还会在真实 Chrome 内核对 HK 出口，再恢复 ini 与 profile，查询 approach 并解析完整内容。必须恢复登录和真实查询均通过，才能继续制卡。
+5. 两个新 Runner 分别通过 Probe 后，运行 **Make cards** 制作一个词，检查公开 Release 的 ZIP、APKG、manifest 与 ZIP 中媒体，再通过 Telegram 验收完整请求链路。Anki 导入和客户端自动播放由用户另机验收。
+6. 仅在已有会话失效时，运行 **Login Doubao session** 并通过私有一次性指令登录。同一浏览器等待人工验证码，成功后导出 JSON、关闭 Chrome、再保存 ini 与用户目录，不反复发短信。
 
-不将 macOS 的 Chrome 目录搬到 Linux，不把 ini 单独当作登录凭据。会话、账号密码和截图不进入 Git、公开 Release 或 Actions artifact。首次迁移验收在 feature 分支运行，生产分支仍需 review 后合并。
-
-## 待验收
+## 验收状态
 
 | 项目 | 结果 |
 | --- | --- |
-| Infisical 账号读取 | 已读取，不输出值 |
-| DeepSeek 实际页面选择器 | 已检查本机 textarea 与账户控件；远端仍需核对 |
-| 远端账号密码登录与图形验证 | 待测 |
-| 关闭 Chrome 后保存 ini 与用户目录 | 待测 |
-| 两个新 Runner 恢复并查询完整内容 | 待测 |
-| 真实 Release ZIP 与 Telegram 结果 | 待测 |
+| 订阅规范化与私有保存 | 已完成 |
+| 已有豆包 JSON 和 profile 对象 | 已确认存在，不代表当前会话仍有效 |
+| mihomo 香港真实出口 | 待远端 Probe |
+| Chrome 香港真实出口 | 待远端 Probe |
+| 两个新 Runner 恢复并查询完整内容 | 待远端 Probe |
+| Release ZIP 与 Telegram 结果 | 待测 |
 | Anki 客户端导入与发音 | 用户另机验收 |
 
-所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；仅做静态/差异检查，验证使用已有远端 Tests 和 Probe 工作流。
+不搬用 macOS 的 Chrome 目录，不把 ini 单独当作凭据。归档保留 Cookie、Local Storage、IndexedDB 等，排除普通缓存与锁/socket。DeepSeek 对象与账号配置不删除，本轮不再使用。
+
+所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；验证使用已有远端 Tests 和 Probe 工作流。

@@ -1,17 +1,17 @@
 # LearnWords
 
-通过 Telegram 指定数量，在 GitHub Actions 用 DrissionPage 操作DeepSeek，生成带英美音标和发音的 Anki 卡包，然后发布到 GitHub Releases。只负责制卡，不记录学习进度、不安排复习。
+通过 Telegram 指定数量，在 GitHub Actions 用 DrissionPage 操作豆包，生成带英美音标和发音的 Anki 卡包，然后发布到 GitHub Releases。只负责制卡，不记录学习进度、不安排复习。
 
 ```text
 Telegram /make 20 random
   → Vercel /api/telegram（鉴权、参数检查、持久化请求去重）
-  → GitHub Actions（选词、DeepSeek、音标和音频、Anki、发布）
+  → GitHub Actions（选词、豆包、音标和音频、Anki、发布）
   → Release（APKG、ZIP、manifest）→ Telegram 结果通知
 ```
 
 ## 当前交付边界
 
-Telegram、Vercel Webhook 和私有 Supabase 已配置。现按用户要求从豆包迁移至 `chat.deepseek.com`，采用远端登录后保存 ini 与完整用户目录的方式。DeepSeek 跨 Runner 恢复、真实内容生成和首个 Release ZIP 正在验收，尚未宣称完成。Anki 客户端由用户在另一台电脑验收。详见 [会话实验](docs/session-research.md)。
+Telegram、Vercel Webhook 和私有 Supabase 已配置。按用户要求回退至豆包，GitHub Actions 先启动 mihomo，仅选香港节点并检查真实出口，再恢复已有 ini 与浏览器目录。此前登录恢复成功，但消息发送失败；接入香港出口后的完整查询、首个 Release ZIP 和 Telegram 通知仍需远端验收，结果记录在 tasklist.md。Anki 客户端由用户在另一台电脑验收。详见 [会话实验](docs/session-research.md)。
 
 ## 指令
 
@@ -30,8 +30,8 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。现按用户要求从�
 1. 合并 PR 后，在 Actions 的 **Tests** 中确认远端测试通过。制卡工作流保留手动入口，没有每日定时器。
 2. 修改 `docs/words/vocabulary.txt`，一行一个单词。当前五个单词仅为起步样例。
 3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。样例中的 `data-testid` 是待核对的配置，不是已经验证的线上页面契约。
-4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `deepseek.json`；`profile` 模式使用 `deepseek-profile.tar.gz`，由远端 **Login DeepSeek session** 登录成功并关闭 Chrome 后保存 ini 和独立用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
-5. 配置下表的 Actions secrets/variables，手动执行 **Probe DeepSeek session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
+4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后保存 ini 和独立用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
+5. 配置下表的 Actions secrets/variables，手动执行 **Probe Doubao session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
 6. 导入生成的 APKG，检查字段、英美发音和自动播放。确认后再部署 Webhook。
 7. 用 BotFather 创建 Telegram Bot；在 Vercel 导入本仓库，Framework 选 Other，根目录为仓库根目录，不设置前端构建命令。入口为 `api/telegram.py`，使用 Python 3.12。
 8. 配置 Vercel 环境变量并重新部署；将 Telegram Webhook 注册为 `https://你的域名/api/telegram`，`secret_token` 与 `TELEGRAM_WEBHOOK_SECRET` 一致，`allowed_updates` 只含 `message`。可用 `python -m scripts.webhook https://你的域名/api/telegram` 读取 `.env` 完成注册，脚本不会打印 token。
@@ -55,8 +55,10 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。现按用户要求从�
 | `SUPABASE_URL` | 不需要 | Secret | 私有会话对象所在项目 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 不需要 | Secret | 仅 Runner 读写私有会话对象 |
 | `SUPABASE_SESSION_BUCKET` | 不需要 | Variable，可选 | 默认 browser-sessions |
-| `SUPABASE_SESSION_OBJECT` | 不需要 | Variable，可选 | 默认 deepseek.json |
-| `SUPABASE_PROFILE_OBJECT` | 不需要 | Variable，可选 | 默认 deepseek-profile.tar.gz，包含 ini 与浏览器用户目录 |
+| `SUPABASE_SESSION_OBJECT` | 不需要 | Variable，可选 | 默认 doubao.json |
+| `SUPABASE_PROFILE_OBJECT` | 不需要 | Variable，可选 | 默认 doubao-profile.tar.gz，包含 ini 与浏览器用户目录 |
+| `MIHOMO_SUBSCRIPTION_URL` | 不需要 | 私有配置 | Clash/mihomo YAML 订阅；本机保存在 .env，Runner 从同一私有 bucket 的 proxy/subscription.json 读取，不使用公开工作流输入 |
+| `BROWSER_PROXY` | 不需要 | 启动脚本自动设置 | http://127.0.0.1:7890，仅 Chrome 走香港节点 |
 | `CHROME_PATH` | 不需要 | 工作流自动发现 | Runner 自带 Chrome；本机实验可手动指定 |
 
 GitHub 必须允许 Actions 写 Contents；若分支保护阻止机器人提交 `docs/`，先为这个自动化选择允许写入的数据分支，并让 `GITHUB_REF` 与手动运行的分支一致。不要在有人工改动但未提交的目录运行制卡程序。
@@ -66,7 +68,7 @@ GitHub 必须允许 Actions 写 Contents；若分支保护阻止机器人提交 
 ```text
 docs/words/vocabulary.txt      词表
 docs/requests/tg-*.json        Telegram 请求去重凭证
-docs/explanations/<word>.json  已校验的DeepSeek解释，中断后复用
+docs/explanations/<word>.json  已校验的豆包解释，中断后复用
 docs/records/generated.json   已发布卡包的单词记录（首次成功后自动生成）
 docs/manifests/<task>.json     数量、失败原因、阶段、Release 地址
 output/<task>/                APKG、ZIP、音频和清单，不进 Git
@@ -80,7 +82,7 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 ## 重试与恢复
 
-- 每个词最多尝试两次，可在 `config.yaml` 调整为 1–3 次。登录失效立即停止后续DeepSeek请求，不反复登录。
+- 每个词最多尝试两次，可在 `config.yaml` 调整为 1–3 次。登录失效立即停止后续豆包请求，不反复登录。
 - 已保存的解释会被复用，发音重新生成，卡片 GUID 仅由系统版本与单词决定。模型和牌组 ID 固定，重导入时须核对 Anki 的更新选项。
 - 如果 Release 已公开但最终记录未提交，原任务重跑会按打包检查点补写交付记录，保持已发布单词清单，不扩大这次卡包的成功数量。
 - 在 Actions 重跑失败任务，或手动运行 **Make cards**，填写原 `request_id`，即可复用原选词清单。已发布任务重跑只反馈原链接，不重建 Release。
@@ -94,10 +96,10 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 使用独立的 [eSpeak NG](https://github.com/espeak-ng/espeak-ng) 引擎生成 `en-gb`、`en-us` IPA 和 WAV。采用合成发音，避免转发来源和再分发许可不明确的词典录音；这是 TTS 音标和发音，不能宣称是真人词典数据，多音词仍应人工核对。来源写入任务清单和 ZIP 说明。
 
-卡片包含 Word、IPA_UK、IPA_US、Audio_UK、Audio_US、Intuition、Meaning、Usage、Examples、Comparison、MemoryTip。媒体通过 Anki 原生 `[sound:文件名]` 引用并随 APKG 打包；正面包含两种口音，是否自动播放取决于客户端设置，不注入 JavaScript 播放器。HTML 字段会转义DeepSeek文本。
+卡片包含 Word、IPA_UK、IPA_US、Audio_UK、Audio_US、Intuition、Meaning、Usage、Examples、Comparison、MemoryTip。媒体通过 Anki 原生 `[sound:文件名]` 引用并随 APKG 打包；正面包含两种口音，是否自动播放取决于客户端设置，不注入 JavaScript 播放器。HTML 字段会转义豆包文本。
 
 ## 验证
 
-按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表选词，并通过本地 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用DeepSeek账号。
+按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表选词，并通过本地 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号。
 
 真实上线验收清单在 [会话实验](docs/session-research.md)。设计比较和开源来源见 [参考设计](docs/design.md)。
