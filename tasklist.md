@@ -5,6 +5,7 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794377792] 清理临时采集后的最终远端 Tests 42971075743 通过；功能代码已验证，后续本次提交仅补充测试结果记录。当前分支 feature/doubao-mihomo，main 未更改；剩余是真实豆包人工验证、ZIP 和 Telegram 制卡验收。未运行本地编译或测试。
 - [1794377675] 香港代理代码已推送 feature/doubao-mihomo；Probe 42970493648 确认单次 completion 被服务端验证要求拒绝。已移除临时响应采集并清理私有诊断；保留正常失败截图文字诊断与停止重试流程。GitHub 已检索相关功能并在 docs/design.md 留存来源；未进行本地编译验证。
 - [1794377427] 本轮远端 Tests 42970252921 通过，13 项真实浏览器、HTTP、音频和打包测试均成功，包含“消息明确发送失败后只发送一次并停止剩余单词”回归；本地仅 AST 语法读取和 git diff --check，未编译或运行测试。
 - [1794377427] 订阅已规范为 MIHOMO_SUBSCRIPTION_URL，.env.example 仅留空值；Infisical 与私有 Supabase 已回读确认与本仓库 .env 一致，没有公开订阅。

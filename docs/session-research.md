@@ -27,4 +27,4 @@
 
 所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；验证使用已有远端 Tests 和 Probe 工作流。
 
-本轮远端 Tests 42970252921 的 13 项测试通过。真实账户仍需人工处理豆包验证后重新 Probe；验证未通过前，尚无可验收的 Release ZIP，也不继续重复查询或发短信。临时 completion 响应采集已移除，私有诊断已清理。
+本轮远端 Tests 42970252921 的 13 项测试通过；清理临时采集后的最终 [Tests 42971075743](https://github.com/C0verSnow/LearnWords/actions/runs/42971075743) 也已通过。真实账户仍需人工处理豆包验证后重新 Probe；验证未通过前，尚无可验收的 Release ZIP，也不继续重复查询或发短信。临时 completion 响应采集已移除，私有诊断已清理。
