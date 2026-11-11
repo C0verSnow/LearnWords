@@ -10,7 +10,7 @@ import requests
 
 from src.config import load_config
 from src.doubao import Doubao
-from src.session import export_session, save_profile
+from src.session import export_session, read_session, restore_session, save_profile
 
 
 def main():
@@ -28,9 +28,12 @@ def main():
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             print("LOGIN_FORM " + json.dumps(snapshot(page), ensure_ascii=False), flush=True)
+            restore_session(page, read_session(), "web_storage")
+            browser.check_login()
+            print("[DEBUG-profile] Fresh JSON session restored before archive.", flush=True)
             browser.close()
             browser = None
-            os.environ["SUPABASE_PROFILE_OBJECT"] = "probe/preflight-profile.tar.gz"
+            os.environ["SUPABASE_PROFILE_OBJECT"] = "doubao-profile.tar.gz"
             save_profile(directory)
             return
         uuid.UUID(login_id)
