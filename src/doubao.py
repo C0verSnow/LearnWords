@@ -1,4 +1,5 @@
 import os
+import json
 import time
 from pathlib import Path
 
@@ -74,7 +75,17 @@ class Doubao:
             send_button = tab.ele(self.config["send"], timeout=15)
             if not send_button:
                 raise RuntimeError("未找到发送按钮，请更新 send 选择器")
-            send_button.click()
+            print("[DEBUG-send] " + json.dumps({"matches": len(tab.eles(self.config["send"], timeout=0)),
+                "editor_length": len(editor.text), "button": send_button.run_js("""
+                const r = this.getBoundingClientRect();
+                const hit = document.elementFromPoint(r.x+r.width/2, r.y+r.height/2);
+                return {disabled:this.disabled, ariaDisabled:this.getAttribute('aria-disabled'),
+                  connected:this.isConnected, x:r.x, y:r.y, width:r.width, height:r.height,
+                  hitInside:hit===this || this.contains(hit), hitTag:hit?.tagName};
+                """)}), flush=True)
+            click_result = send_button.click()
+            print("[DEBUG-send] " + json.dumps({"click_return_type": type(click_result).__name__,
+                                               "returned_false": click_result is False}), flush=True)
         else:
             from DrissionPage.common import Keys
 
