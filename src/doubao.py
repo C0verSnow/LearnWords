@@ -34,10 +34,14 @@ class Doubao:
         options.set_argument("--no-proxy-server")
         # Linux runners have no shared desktop keyring; encryption at rest is handled by the archive.
         options.set_argument("--password-store=basic")
+        if os.getenv("CHROME_LOG_FILE"):
+            options.set_argument("--enable-logging")
         if os.getenv("CHROME_PATH"):
             options.set_browser_path(os.environ["CHROME_PATH"])
         options.save(str(ini_path))
         options = ChromiumOptions(ini_path=str(ini_path))
+        if os.getenv("CHROME_LOG_FILE"):
+            print("[DEBUG-chrome-start] " + repr(options.arguments), flush=True)
         self.page = ChromiumPage(options)
 
     def restore(self):

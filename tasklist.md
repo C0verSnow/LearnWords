@@ -5,6 +5,7 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794396436] 大陆网络 Probe 43011780885 已成功：GitHub Runner 完成 OAuth 接入，内核 TUN 与出口路由选中，实际 HTTPS 公网 IPv4 与服务器一致且 CN，DNS 和豆包 HTTP 检查通过；退出路由及官方 Tailscale post 清理成功。IPv6 未配置并无公网连通性。节点 ping 仍作为诊断保留，最终可用性由真实 HTTPS 确认。
 - [1794396150] BROWSER_PROFILE_KEY、TS_OAUTH_CLIENT_ID、TS_OAUTH_SECRET 已保存本仓库 .env、Infisical 和仓库级 GitHub Secrets；Infisical 回读一致。TS_EXIT_NODE、TS_EXPECTED_IPV4、SESSION_MODE 变量已保存；服务器无公网 IPv6，可选 IPv6 变量不创建空值。未输出凭据或扩大 GitHub 凭据权限，沿用既有 Git 认证完成仓库配置。
 - [1794396051] 已按用户当场授权在 Tailscale 保存新策略：现有用户/共享用户和两个 TGBot 标签权限保留，learnwords-ci 仅放行 autogroup:internet，并通过策略内测试拒绝服务器 SSH 和路由器管理口。LearnWords 专用 OAuth 只选 Auth Keys 写权限和该标签，已私有转存；armbian Exit Node 后台刷新确认 Allowed。代码已推送 feature/doubao-tailscale，远端 Tests 43010722618 已启动。没有本地编译或测试。
 - [1794395655] 指定私钥已成功登录 OpenWrt；核对官方 OpenClash 现有绕过功能后，仅将服务器 MAC 加入 lan_ac_black_macs，原配置备份位于路由器 /root/learnwords-network-backup-1794394966/openclash。同一服务器 DNS 已从 fake-IP 恢复真实地址，Cloudflare 实测出口从 JP 变为 CN，豆包根页面 HTTP 302。用户已当场批准创建 LearnWords 专用 OAuth、限定新 Runner 只访问公网，并批准大陆出口及私有保存凭据。
@@ -59,6 +60,7 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794396436] ini 配置补齐后的 Tests 43011421100 仍在 Chrome 启动连接 127.0.0.1:9222 失败，其他业务测试通过。依次区分首次启动交互、ini 重读丢失参数、Chrome 实际启动错误；只在远端无账号 Tests 开临时 Chrome 启动日志与参数摘要。正式会话加密迁移已独立启动，不触发短信或豆包查询。
 - [1794396252] 大陆网络 Probe 43011315783 已通过 OAuth、节点上线和出口路由选择，但在节点 ping 处停止。核对官方固定版本源码发现 ping 默认 until-direct=true，且原诊断未输出探测结果；改为接受直连或 DERP 中继、输出节点探测摘要，并由实际 HTTPS 出口与服务器 IP 比对决定可用性，不扩大网络授权。
 - [1794396127] 远端 Tests 43010722618 的两个浏览器测试因源 ini 缺少 paths 段失败，其他 11 项通过；已读取固定 DrissionPage 4.1.1.4 官方发布包，补齐 paths、proxies、others 等所需配置段，保留同一真实 Chrome 回归重跑，不做本地测试。独立大陆网络 Probe 已启动。
 - [1794395257] 用户评估后决定继续使用 192.168.1.245，不迁移 OpenWrt。服务器单设备绕过已实测出口 CN，恢复 LearnWords 专用授权、加密会话与远端验证；路由器不安装 Tailscale。
