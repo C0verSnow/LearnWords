@@ -4,6 +4,7 @@ doubao:
   url: https://www.doubao.com/chat/
   timeout: 120
   input: 'css:[data-testid="chat_input_input"] [contenteditable="true"]'
+  send: 'css:[data-testid="chat_input_send_button"]'
   answer: 'css:[data-testid="message_text_content"]'
   generating: 'css:[data-testid="chat_stop_button"]'
   new_chat: 'css:[data-testid="create_conversation_button"]'

@@ -57,10 +57,12 @@ class Doubao:
         editor.input(prompt(word))
         if debug:
             print("[DEBUG-lw-20261110] after-input-chars", len(editor.text), flush=True)
-        from DrissionPage.common import Keys
-        editor.input(Keys.ENTER)
+        send_button = tab.ele(self.config["send"], timeout=15)
+        if not send_button:
+            raise RuntimeError("未找到发送按钮，请更新 send 选择器")
+        send_button.click()
         if debug:
-            print("[DEBUG-lw-20261110] after-enter-chars", len(editor.text), flush=True)
+            print("[DEBUG-lw-20261110] after-submit-chars", len(editor.text), flush=True)
             for control in tab.eles('css:[data-testid*="send"], [data-testid*="stop"]', timeout=0):
                 print("[DEBUG-lw-20261110] send-control", control.tag,
                       control.attr("data-testid"), "visible", control.states.is_displayed,
