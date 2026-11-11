@@ -21,6 +21,7 @@ CONTROLLER = "http://127.0.0.1:9090"
 
 def main():
     load_config()
+    tun = os.getenv("MIHOMO_TUN") == "1"
     directory = Path(".session/mihomo").resolve()
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     nodes = subscription_nodes()
@@ -33,20 +34,39 @@ def main():
                           "proxies": [node["name"] for node in nodes]}],
         "rules": ["MATCH,HongKong"],
     }
+    if tun:
+        config["tun"] = {
+            "enable": True, "device": "LearnWords", "stack": "gvisor",
+            "auto-route": True, "auto-redirect": True, "auto-detect-interface": True,
+            "strict-route": True, "dns-hijack": ["any:53", "tcp://any:53"],
+        }
+        config["dns"] = {
+            "enable": True, "listen": "127.0.0.1:1053", "enhanced-mode": "fake-ip",
+            "fake-ip-range": "198.18.0.1/16", "respect-rules": True,
+            "nameserver": ["https://1.1.1.1/dns-query"],
+            "proxy-server-nameserver": ["1.1.1.1", "8.8.8.8"],
+        }
     path = directory / "config.yaml"
     path.write_text(yaml.safe_dump(config, allow_unicode=True), encoding="utf-8")
     path.chmod(0o600)
-    process = subprocess.Popen([str(binary), "-d", str(directory), "-f", str(path)],
+    command = (["sudo", "-n"] if tun else []) + [str(binary), "-d", str(directory), "-f", str(path)]
+    process = subprocess.Popen(command,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                start_new_session=True)
     try:
         wait_for_controller(process)
         select_hong_kong(nodes)
+        if tun:
+            verify_tun()
         with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as stream:
-            stream.write(f"BROWSER_PROXY={PROXY}\n")
-        print("mihomo ready: verified Hong Kong exit; Chrome proxy configured.", flush=True)
+            stream.write(f"BROWSER_PROXY={'' if tun else PROXY}\n")
+        print("mihomo ready: verified Hong Kong exit; "
+              + ("TUN active, no Chrome HTTP proxy." if tun else "Chrome proxy configured."), flush=True)
     except Exception:
-        process.terminate()
+        if tun:
+            subprocess.run(["sudo", "-n", "pkill", "-x", "mihomo"], check=False)
+        else:
+            process.terminate()
         raise
 
 
@@ -117,6 +137,19 @@ def select_hong_kong(nodes):
         except requests.RequestException:
             pass
     raise RuntimeError("香港节点均未通过真实出口检查，停止浏览器任务")
+
+
+def verify_tun():
+    response = requests.get(CONTROLLER + "/configs", timeout=5)
+    response.raise_for_status()
+    if not response.json().get("tun", {}).get("enable") or not Path("/sys/class/net/LearnWords/tun_flags").exists():
+        raise RuntimeError("TUN 配置或虚拟网卡未生效")
+    with requests.Session() as direct:
+        direct.trust_env = False
+        response = direct.get("https://www.cloudflare.com/cdn-cgi/trace", timeout=20)
+        if not response.ok or "loc=HK" not in response.text.splitlines():
+            raise RuntimeError("不设置 HTTP 代理时的真实出口未通过香港检查")
+    print("TUN enabled; LearnWords interface exists; no-proxy HTTP exit country HK confirmed.", flush=True)
 
 
 if __name__ == "__main__":

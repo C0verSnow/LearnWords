@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
+      MIHOMO_TUN: '1'
       SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'profile' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -34,3 +35,6 @@ jobs:
       - name: Start private Hong Kong proxy
         run: python -m scripts.mihomo
       - run: python -m scripts.session probe
+      - name: Stop TUN before runner cleanup
+        if: always()
+        run: sudo pkill -x mihomo || true

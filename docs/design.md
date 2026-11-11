@@ -55,3 +55,11 @@ DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动
 固定 mihomo v1.19.33 的 linux-amd64-compatible 压缩包，SHA-256 取自官方 Release asset digest。订阅需为含 proxies 的 Clash/mihomo YAML；不实现其他订阅格式转换。订阅与节点配置沿用现有私有 Supabase 通道及 .session 忽略目录，不扩展 GitHub token 权限。控制接口与 mixed 端口只监听 127.0.0.1，进程随一次性 Runner 结束销毁。
 
 回退时恢复了原豆包按钮提交方式和已有“发送失败只发一次，停止后续单词”的远端浏览器回归。页面出现明确失败图标时，沿用现有停止流程，不连续重试被拒绝的消息。
+
+## 2026-11-11 单次 TUN 对照
+
+用户明确要求开启 TUN 后再测试一次。继续使用前文已比较过的 mihomo 与同一份香港订阅，在 GitHub 检索了 [官方 TUN 文档源码](https://github.com/MetaCubeX/Meta-Docs/blob/main/docs/config/inbound/tun.en.md)，核对 [TUN 配置](https://wiki.metacubex.one/en/config/inbound/tun/) 和 [DNS 配置](https://wiki.metacubex.one/en/config/dns/)。对比 system/mixed 与 gvisor：前者使用内核 TCP 栈，后者用用户态协议栈；本轮选择已有二进制内置的 gvisor，不引入依赖。参考 [system/IPv6 DNS 问题 #2560](https://github.com/MetaCubeX/mihomo/issues/2560) 和 [systemd-resolved 问题 #2907](https://github.com/MetaCubeX/mihomo/issues/2907)，采用官方 auto-route、auto-redirect、strict-route 与 DNS 劫持配置，不增加系统 DNS 管理器的额外适配。
+
+仅 Probe 工作流设置 MIHOMO_TUN=1；Login 与 Make cards 仍沿用此前 HTTP 代理，避免本次对照扩大到生产流程。mihomo 通过 Runner 自带 sudo 获得创建虚拟网卡和配置路由的权限，启用 LearnWords TUN 网卡，DNS 使用 fake-ip、respect-rules 与独立节点域名解析。Chrome 显式传入 --no-proxy-server，不设置 BROWSER_PROXY。先核对控制接口实际 tun.enable、虚拟网卡存在，以及忽略 HTTP 代理环境变量时出口为 HK，再在 Chrome 内独立检查 HK，最后恢复同一 profile 并只发送一次查询。
+
+失败时私有诊断只保存 completion 的 HTTP 状态和固定错误布尔值，不保存原始响应或验证凭据。无论成功失败，Probe 都停止 root 运行的 mihomo，再执行 Runner 清理。此项用于比较 TUN 与此前 HTTP 代理，不代表 TUN 能解除豆包的账号验证要求。

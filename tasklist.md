@@ -40,6 +40,7 @@
 - [1794301047] 同步了只有 README 的远端仓库，读完 issue 和补充讨论，建立 feature 分支。
 
 ## 没做：
+- [1794377813] 用户要求暂停，停止后续工作，不再启动远端任务。订阅命名规范化已完成，香港出口和登录恢复已通过；豆包仍要求人工验证，ZIP 与 Telegram 制卡验收未完成。改动保存在 feature/doubao-mihomo，main 未更改，未进行本地编译验证。
 - [1794377675] 本轮香港出口仍未通过真实制卡：两次新 Runner 的 Chrome 出口均 HK、已有 profile 登录均恢复成功，但请求返回 710022004 / rate limited；私有响应明确 decision.type=verify、subtype=semantic_reasoning、scene=doubao_message_web。需要人工处理豆包验证后再继续真实查询、Release ZIP 和 Telegram 制卡验收；未重复发短信，未更改 main。
 - [1794376534] 按用户要求暂停 192.168.1.245 部署评估。已取得部分只读检查结果，尚未完成评估结论；未安装依赖、未部署 LearnWords、未进行本地编译验证。后续等待用户恢复。
 - [1794322384] 当前仍缺 Webhook 专用 GitHub 凭据、Supabase 项目选择及会话对象、Vercel 部署与真实制卡验收；PR #2 原先要求等 review，已向用户询问是否合并。豆包已由用户完成网页登录，但跨 Runner 恢复没有验证。
@@ -47,6 +48,8 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794378162] 已按官方文档补充 Probe 专用 TUN 开关：sudo 启动 mihomo、gvisor 虚拟网卡、自动路由和 DNS 劫持；Chrome 使用 --no-proxy-server。先检查实际 TUN 网卡与无 HTTP 代理的香港出口，再恢复同一 profile 发送一次查询；GitHub 已检索官方配置与相关问题并记录 docs/design.md。
+- [1794377957] 用户恢复任务，明确要求在 GitHub Actions 开启 mihomo TUN 后再测试一次；沿用现有香港节点与豆包 profile，先核对官方 TUN 配置，再运行单次远端 Probe，不进行本地编译或测试。
 - [1794377367] 远端 Probe 42970258764 已确认四个香港候选可用、mihomo 与真实 Chrome 出口均 HK，已有 profile 登录检查通过，但发送出现失败图标；不是代理未生效。继续用同一个 Probe 记录单次 completion 的私有错误响应，区分账号验证、出口地区或旧会话影响；未重新发短信。
 - [1794377217] 已将运行入口、选择器、会话对象和工作流回退豆包；新增云端 mihomo 香港出口检查与 Chrome 显式代理，恢复真实浏览器发送失败回归；GitHub 已检索比较官方 mihomo 和 Clash Verge Rev，来源记录 docs/design.md，准备远端 Tests 与 Probe。
 - [1794377086] 用户确认继续使用 GitHub Actions；订阅实际写在 .env 的 url: 后，已规范为 MIHOMO_SUBSCRIPTION_URL，并私有同步至 Infisical 和现有 Supabase bucket，供远端启动 mihomo 使用；不记录链接内容。

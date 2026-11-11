@@ -28,7 +28,9 @@ class Doubao:
         options.set_argument("--no-sandbox")
         options.set_argument("--disable-dev-shm-usage")
         options.set_argument("--window-size=1440,1000")
-        if os.getenv("BROWSER_PROXY"):
+        if os.getenv("MIHOMO_TUN") == "1":
+            options.set_argument("--no-proxy-server")
+        elif os.getenv("BROWSER_PROXY"):
             options.set_proxy(os.environ["BROWSER_PROXY"])
         if os.getenv("CHROME_PATH"):
             options.set_browser_path(os.environ["CHROME_PATH"])
