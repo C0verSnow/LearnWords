@@ -23,3 +23,11 @@ GitHub 请求去重采用 Contents API 创建以 update_id 命名的文件，避
 - [GitHub 并发与 queue: max](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)。
 - [Telegram Webhook](https://core.telegram.org/bots/api#setwebhook)：secret_token 请求头、message 更新。
 - [Supabase 私有对象下载](https://supabase.com/docs/reference/python/storage-from-download)：只在 Runner 下载，不给 Webhook 访问会话的权限。
+
+## ini 与用户目录实验
+
+2026-11-10 再次检索并比较 [microsoft/playwright](https://github.com/microsoft/playwright)（99,802 stars，Apache-2.0，最近提交 2026-11-10，issue #44038 有 5 条讨论）和 [puppeteer/puppeteer](https://github.com/puppeteer/puppeteer)（95,822 stars，Apache-2.0，最近提交 2026-11-10）。Playwright 使用 `launch_persistent_context(user_data_dir)`，Puppeteer 使用 `userDataDir`；两者都复用浏览器独立目录，分别依赖自身 Python/Node 浏览器驱动与浏览器安装。采用“持久化独立用户目录”的设计，不引入这两套依赖、不复制代码。参考 [Playwright 官方持久上下文说明](https://playwright.dev/python/docs/api/class-browsertype#browser-type-launch-persistent-context) 和 [Puppeteer 启动参数](https://pptr.dev/api/puppeteer.launchoptions)。
+
+DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动配置；真正登录状态在 [用户目录](https://www.drissionpage.cn/browser_control/connect_browser/)。现有 JSON 恢复实验在新 Ubuntu Runner 遇到地区限制，用户同意继续验证 ini 加完整用户目录：登录完成先关闭 Chrome，再打包 ini、Cookie 数据库、网页存储等文件，上传已有私有 Supabase；运行时下载解压，在 ini 基础上调整本 Runner 的用户目录与 Chrome 路径。归档不包含进程锁、socket 和符号链接，也不会进入 Git、Release 或 Actions artifact。
+
+这只是同平台新 Runner 的实验，不代表目录跨操作系统可迁移，也不能保证能绕开服务端会话或地区要求。多个实例不能同时使用一个目录，沿用既有串行工作流，不新增锁。目录归档由 Python 标准库 tarfile 生成与读取，不新增依赖。

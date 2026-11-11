@@ -10,14 +10,14 @@ import requests
 
 from src.config import load_config
 from src.doubao import Doubao
-from src.session import export_session
+from src.session import export_session, save_profile
 
 
 def main():
     config = load_config()["doubao"]
-    directory = Path(".session")
-    directory.mkdir(mode=0o700, exist_ok=True)
-    browser = Doubao(config, ini_path=directory / "remote-login.ini")
+    directory = Path(".session/browser")
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    browser = Doubao(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
     try:
         page = browser.page
         page.get(config["url"])
@@ -40,6 +40,10 @@ def main():
                 export_session(page, path)
                 storage("POST", os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"),
                         json.loads(path.read_text()))
+                # Chrome must flush its databases before the profile is archived.
+                browser.close()
+                browser = None
+                save_profile(directory)
                 storage("POST", prefix + "/status.json", {"phase": "saved"})
                 print("Remote login completed; session saved privately.", flush=True)
                 return
@@ -82,7 +86,8 @@ def main():
         print("Remote login stopped: " + type(error).__name__, flush=True)
         raise SystemExit(1) from None
     finally:
-        browser.close()
+        if browser is not None:
+            browser.close()
 
 
 def snapshot(page):

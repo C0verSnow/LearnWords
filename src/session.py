@@ -1,5 +1,7 @@
 import json
 import os
+import tarfile
+import tempfile
 from pathlib import Path
 
 import requests
@@ -47,6 +49,48 @@ def export_session(page, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     path.chmod(0o600)
+
+
+def save_profile(directory):
+    with tempfile.TemporaryFile() as stream:
+        with tarfile.open(fileobj=stream, mode="w:gz") as archive:
+            archive.add(directory, arcname=".",
+                        filter=lambda entry: entry if entry.isfile() or entry.isdir() else None)
+        stream.seek(0)
+        try:
+            response = requests.post(profile_url(), data=stream, headers={
+                "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
+                "apikey": required_env("SUPABASE_SERVICE_ROLE_KEY"),
+                "Content-Type": "application/gzip", "x-upsert": "true",
+            }, timeout=120)
+        except requests.RequestException:
+            raise RuntimeError("浏览器目录上传失败") from None
+        if not response.ok:
+            raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
+
+
+def restore_profile(directory):
+    try:
+        response = requests.get(profile_url(authenticated=True), headers={
+            "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
+            "apikey": required_env("SUPABASE_SERVICE_ROLE_KEY"),
+        }, timeout=120)
+    except requests.RequestException:
+        raise RuntimeError("浏览器目录下载失败") from None
+    if not response.ok:
+        raise RuntimeError(f"浏览器目录下载失败（HTTP {response.status_code}）")
+    with tempfile.TemporaryFile() as stream:
+        stream.write(response.content)
+        stream.seek(0)
+        with tarfile.open(fileobj=stream, mode="r:gz") as archive:
+            archive.extractall(directory, filter="data")
+
+
+def profile_url(authenticated=False):
+    return (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/"
+            + ("authenticated/" if authenticated else "")
+            + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
+            + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz"))
 
 
 def validate_session(data):

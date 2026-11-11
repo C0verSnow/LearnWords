@@ -1,9 +1,10 @@
 import os
 import tempfile
 import time
+from pathlib import Path
 
 from src.content import parse_content, prompt
-from src.session import read_session, restore_session
+from src.session import read_session, restore_profile, restore_session
 
 
 class LoginExpired(RuntimeError):
@@ -16,7 +17,13 @@ class Doubao:
 
         self.config = config
         self.temp = tempfile.TemporaryDirectory(prefix="learnword-browser-") if profile is None else None
-        options = ChromiumOptions().set_user_data_path(profile or self.temp.name)
+        if profile is None and os.getenv("SESSION_MODE") == "profile":
+            directory = Path(self.temp.name)
+            restore_profile(directory)
+            profile, ini_path = directory / "profile", directory / "chrome.ini"
+        options = (ChromiumOptions(ini_path=str(ini_path))
+                   if ini_path and Path(ini_path).exists() else ChromiumOptions())
+        options.set_user_data_path(str(profile or self.temp.name))
         options.set_local_port(9222).headless(headless)
         options.set_argument("--no-sandbox")
         options.set_argument("--disable-dev-shm-usage")
@@ -30,9 +37,9 @@ class Doubao:
     def restore(self):
         self.page.get(self.config["url"])
         mode = os.getenv("SESSION_MODE", "none")
-        if mode not in ("none", "cookies", "web_storage"):
-            raise ValueError("SESSION_MODE 只能填 none、cookies 或 web_storage")
-        if mode != "none":
+        if mode not in ("none", "cookies", "web_storage", "profile"):
+            raise ValueError("SESSION_MODE 只能填 none、cookies、web_storage 或 profile")
+        if mode in ("cookies", "web_storage"):
             restore_session(self.page, read_session(), mode)
         self.check_login()
 
