@@ -82,7 +82,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 | GitHub、Supabase、PyPI、其他地址 | Runner 原始 DNS | Runner 原出口 |
 | Tailscale 自身连接 | 官方 underlay 标记及路由 | Runner 原出口 |
 
-官方 Exit Node 并不原生支持域名规则。`.github/actions/tailscale-doubao` 先记录原网卡、DNS 和公网出口，再启用已有 Exit Node；仅在本次 Runner 安装 `dnsmasq-base` 与 `nftables`。dnsmasq 监听回环地址，把目标解析结果写入预建的 IPv4/IPv6 nft 集合。Chrome 管理策略关闭 DoH，确保使用系统 DNS；未设置 HTTP/SOCKS 代理。
+官方 Exit Node 并不原生支持域名规则。`.github/actions/tailscale-doubao` 先记录原网卡、DNS 和公网出口，再连接 Tailnet、安装普通流量查 main 的规则，最后选择已有 Exit Node，避免安装过程短暂切换普通出口；仅在本次 Runner 安装 `dnsmasq-base` 与 `nftables`。dnsmasq 监听回环地址，把目标解析结果写入预建的 IPv4/IPv6 nft 集合。Chrome 管理策略关闭 DoH，确保使用系统 DNS；未设置 HTTP/SOCKS 代理。
 
 `inet learnwords` 的 output route 链给集合内地址打 `0x100` 标记，大陆 DNS 查询同样打标；postrouting 仅对这些出 TUN 的包做 masquerade，避免 output 改路由后保留原始网卡源地址。另在 postrouting 对 TUN 的 TCP SYN 按实际路由 MTU 限制 MSS；真实诊断发现改路由后 SYN 仍为 1460，超过 Tailscale 1280 MTU，豆包 TLS 握手超时。Tailscale 自身的 `0x80000/0xff0000` 标记优先保留。策略规则在官方 underlay 规则之后、默认 Tailscale 规则之前：5260 为目标标记查表 52，5261 保留 overlay 路由，5265 查原 main 表，5266 终止没有原生路由的流量，避免普通 IPv6 意外使用大陆出口。集合随任务结束清空，不维护静态 CDN IP 表。
 
@@ -90,6 +90,6 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 按解析 IP 分流存在共用 IP 边界：其他域名若与目标共用 IP，也可能走大陆。DNS 缓存绕过、未知关联域名和后续 CDN 变化仍需通过实际页面观察维护清单，不能声称能区分共用 IP 上每一个 HTTPS 域名。当前不安装 App Connector，理由见 [研究](appconnector-notes.md)。
 
-所有浏览器工作流的 `always()` 收尾先取消 Exit Node，再恢复系统 DNS、结束本任务 dnsmasq、删除专属规则/nft 表与 Chrome DNS 策略；官方 Action post 退出临时节点。手动诊断命令为 `python -m scripts.tailscale_split stop`，只在对应 Runner 上执行。
+所有浏览器工作流的 `always()` 收尾先终止残留 Chrome，再取消 Exit Node，恢复系统 DNS、结束本任务 dnsmasq、删除专属规则/nft 表与 Chrome DNS 策略；官方 Action post 退出临时节点。手动诊断命令为 `python -m scripts.tailscale_split stop`，只在对应 Runner 上执行。
 
 参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[dnsmasq nftset](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)、[Tailscale MTU/MSS 排障](https://tailscale.com/docs/reference/troubleshooting/network-configuration/tcp-connection-two-devices)、[nft MSS 规则](https://wiki.nftables.org/wiki-nftables/index.php/Mangling_packet_headers)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。GitHub 检索与方案比较见 [设计记录](design.md)。

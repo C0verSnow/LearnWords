@@ -83,8 +83,8 @@ jobs:
       - name: Restore runner routing and remove private working files
         if: always()
         run: |
-          python -m scripts.tailscale_split stop || true
           pkill -x chrome || true
+          python -m scripts.tailscale_split stop || true
           rm -rf .session
       - name: Preserve products and recovery data even on failure
         if: always()

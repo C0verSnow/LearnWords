@@ -6,7 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from src.config import ROOT, load_config
+from src.config import ROOT, load_config, required_env
 from src.network import curl_trace
 
 DIRECTORY = ROOT / '.session/network'
@@ -80,6 +80,8 @@ def start_split():
         run('ip', family, 'rule', 'add', 'pref', '5265', 'lookup', 'main')
         # A runner without native IPv6 must not fall through to the exit node for non-target traffic.
         run('ip', family, 'rule', 'add', 'pref', '5266', 'unreachable')
+    # Install the main-table bypass before selecting an exit, so setup never switches ordinary traffic.
+    run('tailscale', 'set', '--exit-node=' + required_env('TS_EXIT_NODE'), '--exit-node-allow-lan-access=false')
     domains = domain_names()
     lines = ['port=53', 'listen-address=127.0.0.1', 'bind-interfaces', 'no-resolv', 'user=root', 'group=root',
              'cache-size=1000', 'pid-file=' + str(DIRECTORY / 'dnsmasq.pid'),

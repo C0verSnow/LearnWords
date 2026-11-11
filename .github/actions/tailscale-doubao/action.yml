@@ -29,7 +29,7 @@ runs:
         version: '1.104.5'
         hostname: learnwords-${{ github.run_id }}-${{ github.run_attempt }}
         tailscaled-args: --tun=tailscale0
-        args: --accept-dns=false --exit-node=${{ inputs.exit-node }} --exit-node-allow-lan-access=false
+        args: --accept-dns=false
         ping: ${{ inputs.exit-node }}
         log-mode: quiet
     - name: Install runner-only domain rules

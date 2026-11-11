@@ -1,3 +1,4 @@
+import base64
 import json
 import io
 import os
@@ -124,4 +125,3 @@ def validate_session(data):
         if not isinstance(storage, dict) or any(not isinstance(k, str) or not isinstance(v, str)
                                                 for k, v in storage.items()):
             raise ValueError("网页存储格式错误")
-import base64
