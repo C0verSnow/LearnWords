@@ -1,0 +1,16 @@
+{
+  "task_id": "tg-654645726",
+  "requested": 1,
+  "mode": "next",
+  "selected": [
+    "approach"
+  ],
+  "created_at": "2026-11-11T01:18:52.578453+00:00",
+  "stage": "failed",
+  "failed": {
+    "approach": "豆包登录未确认，请重新登录并检查 authenticated 选择器"
+  },
+  "succeeded": [],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
