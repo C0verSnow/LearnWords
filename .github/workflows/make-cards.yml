@@ -60,9 +60,7 @@ jobs:
           cache: pip
       - name: Install Chrome, speech engine and Python dependencies
         run: |
-          sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
-          sudo apt-get update
-          sudo apt-get install -y espeak-ng
+          bash scripts/install_runner_packages.sh espeak-ng
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
           python -m pip install -r requirements-worker.txt
           git config user.name 'github-actions[bot]'
