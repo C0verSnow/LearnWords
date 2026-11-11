@@ -76,7 +76,7 @@ class Doubao:
             if not send_button:
                 raise RuntimeError("未找到发送按钮，请更新 send 选择器")
             print("[DEBUG-send] " + json.dumps({"matches": len(tab.eles(self.config["send"], timeout=0)),
-                "editor_length": len(editor.text), "button": send_button.run_js("""
+                "button": send_button.run_js("""
                 const r = this.getBoundingClientRect();
                 const hit = document.elementFromPoint(r.x+r.width/2, r.y+r.height/2);
                 return {disabled:this.disabled, ariaDisabled:this.getAttribute('aria-disabled'),
