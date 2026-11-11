@@ -124,7 +124,10 @@ def wait_for_controller(process):
 
 
 def select_hong_kong(nodes):
+    preferred = int(os.getenv("MIHOMO_HK_INDEX", "0"))
     for index, node in enumerate(nodes, 1):
+        if preferred and index != preferred:
+            continue
         response = requests.put(CONTROLLER + "/proxies/HongKong",
                                 json={"name": node["name"]}, timeout=5)
         response.raise_for_status()

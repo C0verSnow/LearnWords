@@ -6,6 +6,7 @@ import re
 import time
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 
@@ -29,7 +30,7 @@ def main():
         time.sleep(8)
         page.get(config["login_url"])
         time.sleep(8)
-        page.listen.start("login", method="POST")
+        page.listen.start(True)
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             state = snapshot(page)
@@ -89,11 +90,9 @@ def apply_command(page, config, command):
         if not isinstance(user, str) or not user or not isinstance(password, str) or not password:
             raise ValueError("Invalid credentials")
         user_field = page.ele(config["login_user"])
-        user_field.clear(by_js=False)
-        user_field.input(user)
+        fill_field(user_field, user)
         password_field = page.ele(config["login_password"])
-        password_field.clear(by_js=False)
-        password_field.input(password)
+        fill_field(password_field, password)
         if user_field.value != user or password_field.value != password:
             raise RuntimeError("Login fields did not match private input")
         if command.get("submit") is True:
@@ -113,8 +112,7 @@ def apply_command(page, config, command):
             value = command.get("value")
             if not isinstance(value, str):
                 raise ValueError("Invalid input")
-            element.clear(by_js=False)
-            element.input(value)
+            fill_field(element, value)
     elif action == "point":
         point = command.get("point")
         if (not isinstance(point, list) or len(point) != 2
@@ -146,21 +144,34 @@ def snapshot(page):
             "notice": body, "screenshot": base64.b64encode(page.get_screenshot(as_bytes="png")).decode()}
 
 
+def fill_field(element, value):
+    from DrissionPage.common import Keys
+
+    element.run_js("this.focus(); this.select();")
+    element.owner.actions.type(Keys.BACKSPACE)
+    element.input(value)
+
+
 def login_regions(page):
     regions = []
     for packet in page.listen.steps(timeout=1):
-        data = packet.request.postData
+        url = urlsplit(packet.url)
+        data = packet.request.postData if "login" in url.path else {}
         if isinstance(data, str):
             try:
                 data = json.loads(data)
             except ValueError:
                 continue
-        if isinstance(data, dict):
-            fields = {key: value for key, value in data.items()
+        if not isinstance(data, dict):
+            data = {}
+        fields = {key: value for key, value in data.items()
                       if key in ("area_code", "country", "country_code", "region", "phone_code", "dial_code")
                       and isinstance(value, (str, int))}
-            regions.append({"request_keys": list(data), "region_fields": fields,
-                            "status": None if packet.is_failed else packet.response.status})
+        regions.append({"host": url.netloc, "path": url.path,
+                        "request_keys": list(data), "region_fields": fields,
+                        "network_failed": packet.is_failed,
+                        "error": packet.fail_info.errorText if packet.is_failed else "",
+                        "status": None if packet.is_failed else packet.response.status})
     return regions
 
 
