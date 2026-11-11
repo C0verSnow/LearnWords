@@ -10,3 +10,4 @@ deepseek:
   authenticated: 'css:._2afd28d[tabindex="0"]'
   login_user: 'css:input[type="text"]'
   login_password: 'css:input[type="password"]'
+  login_submit: 'xpath://div[@role="button" and normalize-space(.)="Log in"]'

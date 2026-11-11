@@ -29,6 +29,7 @@ def main():
         time.sleep(8)
         page.get(config["login_url"])
         time.sleep(8)
+        page.listen.start("login", method="POST")
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             state = snapshot(page)
@@ -40,6 +41,7 @@ def main():
         storage("POST", prefix + "/status.json", {"phase": "ready", **snapshot(page)})
         print("Remote login browser ready; private controls only.", flush=True)
         deadline = time.monotonic() + 900
+        regions = []
         while time.monotonic() < deadline:
             if page.ele(config["authenticated"], timeout=0):
                 state = snapshot(page)
@@ -51,7 +53,7 @@ def main():
                 browser.close()
                 browser = None
                 save_profile(directory)
-                storage("POST", prefix + "/status.json", {"phase": "saved", **state})
+                storage("POST", prefix + "/status.json", {"phase": "saved", "login_regions": regions, **state})
                 print("Remote login completed; session saved privately.", flush=True)
                 return
             command = storage("GET", prefix + "/command.json")
@@ -63,8 +65,9 @@ def main():
             try:
                 apply_command(page, config, command)
                 time.sleep(2)
+                regions.extend(login_regions(page))
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
-                                                           **snapshot(page)})
+                                                           "login_regions": regions, **snapshot(page)})
             except Exception as error:
                 storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
                                                            "last_error": type(error).__name__, **snapshot(page)})
@@ -91,6 +94,10 @@ def apply_command(page, config, command):
         password_field = page.ele(config["login_password"])
         password_field.clear(by_js=False)
         password_field.input(password)
+        if user_field.value != user or password_field.value != password:
+            raise RuntimeError("Login fields did not match private input")
+        if command.get("submit") is True:
+            page.ele(config["login_submit"]).click()
     elif action in ("click", "input", "account"):
         selector = command.get("selector")
         if not isinstance(selector, str) or not selector:
@@ -137,6 +144,24 @@ def snapshot(page):
     signals = {term: term in body for term in ("验证码", "验证失败", "操作频繁", "拖动", "滑块", "安全验证")}
     return {"url": page.url.split("?")[0], "fields": fields, "controls": controls, "signals": signals,
             "notice": body, "screenshot": base64.b64encode(page.get_screenshot(as_bytes="png")).decode()}
+
+
+def login_regions(page):
+    regions = []
+    for packet in page.listen.steps(timeout=1):
+        data = packet.request.postData
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except ValueError:
+                continue
+        if isinstance(data, dict):
+            fields = {key: value for key, value in data.items()
+                      if key in ("area_code", "country", "country_code", "region", "phone_code", "dial_code")
+                      and isinstance(value, (str, int))}
+            regions.append({"request_keys": list(data), "region_fields": fields,
+                            "status": None if packet.is_failed else packet.response.status})
+    return regions
 
 
 def redact_phone(text):
