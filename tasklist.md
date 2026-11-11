@@ -6,6 +6,8 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794420246] 原生选区/Backspace 修复后的两轮远端 Tests 43073535651、43073544831 均全部 13 项通过；同一源代码 be55f35 的真实 Probe 43073545078 也成功，新 Runner 继续恢复真实登录并完成查询、加密归档保存和路由清理。GitHub 已检索并记录 Tailscale、dnsmasq/nft、DrissionPage、cryptography 等实现参考；未进行本地编译或测试。准备将 PR #3 标为可审阅，仍按原约定不自动合并 main。
+- [1794420091] 已下载真实 Release 逐项读取：ZIP 内 APKG 与独立 APKG 字节相同；SQLite 为 approach 的 1 条笔记/1 张卡片，UK/US 两段 WAV 各约 0.8 秒、22050 Hz，字段音频引用齐全。manifest 无失败或数量不足；Make cards 清理步骤成功，未见 Telegram 通知失败。Anki 导入依约留给用户另机验收，main 仍等 PR review。
 - [1794419992] 新 Runner 的 Probe 43068019860 恢复真实登录并在 39 秒收到完整单词内容；目标出口 183.24.92.161/CN、普通 Chrome 保持 Runner 出口，加密目录保存约 15 MB。Make cards 43070141744 成功制作 approach，Release 已发布 APKG、ZIP 和 manifest，正在逐项读包验收。
 - [1794417914] 富文本旧草稿回归 Tests 43067260108 已按预期变红：13 项中仅该断言失败，实际发送文本为“旧草稿”拼接完整新提示。现使用当前新界面的“新对话”role 控件等待就绪，输入前原生点击聚焦并 clear=True 清空；保留发送按钮一次提交。继续远端回归和真实页面，未进行本地编译/测试。
 - [1794416114] Probe 43060756620 从 15 MB 新归档恢复真实登录成功，账号 profile/self、状态心跳等接口 code=0，已完成的豆包 POST 全部命中目标 nft 集合且为 HTTP/2；再次保存为 15,242,802 字节，无上传错误，目录瘦身不损失网站会话。清理归档目录体积临时诊断。未发现模型 completion，请求链只到 send_rate_limit；进一步读取该接口的数值/开关/固定枚举，去掉 generate 前重复整页刷新，只用网站的新建对话按钮重置。

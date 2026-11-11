@@ -11,7 +11,7 @@ Telegram /make 20 random
 
 ## 当前交付边界
 
-Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，GitHub-hosted Ubuntu Runner 使用 Tailscale 内核 TUN，仅让豆包目标地址经大陆服务器 192.168.1.245 出口，其余保持 Runner 原出口；Chrome 使用 Xvfb 有头模式，不设置浏览器代理。完整用户目录和 ini 关闭后加密保存到私有 Supabase。大陆服务器已实测 CN 出口；远端连接、加密迁移、登录恢复及首个 ZIP 的最新验收结果见 tasklist.md，不把已有登录记录当作本次验收通过。
+Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，GitHub-hosted Ubuntu Runner 使用 Tailscale 内核 TUN，仅让豆包目标地址经大陆服务器 192.168.1.245 出口，其余保持 Runner 原出口；Chrome 使用 Xvfb 有头模式，不设置浏览器代理。完整用户目录和 ini 关闭后加密保存到私有 Supabase。已在多个新 Runner 恢复登录并完成真实查询，[首个卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-tun-1794418718)已发布，含 approach 卡片与英美合成音频。详细证据见 [验收记录](docs/tailscale.md#实际验收记录2026-11-11)；Anki 客户端由用户另机验收。当前功能分支仍待 PR review，合并前 Telegram 生产入口保持 main 原有代码。
 
 从零配置、故障排查与分流边界见 [Tailscale 部署指南](docs/tailscale.md)。OpenWrt 评估见 [评估记录](docs/tailscale-openwrt-assessment.md)，本次选择继续使用独立服务器。
 
@@ -31,7 +31,7 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，Gi
 
 1. 合并 PR 后，在 Actions 的 **Tests** 中确认远端测试通过。制卡工作流保留手动入口，没有每日定时器。
 2. 修改 `docs/words/vocabulary.txt`，一行一个单词。当前五个单词仅为起步样例。
-3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。样例中的 `data-testid` 是待核对的配置，不是已经验证的线上页面契约。
+3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。当前选择器已在真实页面核对，网站改版后仍需重新检查。
 4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz.enc`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后加密保存 ini 和完整用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
 5. 配置下表的 Actions secrets/variables，手动执行 **Probe browser access and session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
 6. 导入生成的 APKG，检查字段、英美发音和自动播放。确认后再部署 Webhook。

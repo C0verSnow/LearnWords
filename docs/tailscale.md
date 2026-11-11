@@ -94,3 +94,11 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 所有浏览器工作流的 `always()` 收尾先终止残留 Chrome，再取消 Exit Node，恢复系统 DNS、结束本任务 dnsmasq、删除专属规则/nft 表与 Chrome DNS 策略；官方 Action post 退出临时节点。手动诊断命令为 `python -m scripts.tailscale_split stop`，只在对应 Runner 上执行。
 
 参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[dnsmasq nftset](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)、[Tailscale MTU/MSS 排障](https://tailscale.com/docs/reference/troubleshooting/network-configuration/tcp-connection-two-devices)、[nft MSS 规则](https://wiki.nftables.org/wiki-nftables/index.php/Mangling_packet_headers)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。GitHub 检索与方案比较见 [设计记录](design.md)。
+
+## 实际验收记录（2026-11-11）
+
+- [真实登录与查询 43068019860](https://github.com/C0verSnow/LearnWords/actions/runs/43068019860)：新 Runner 恢复加密完整目录并确认已登录，39 秒得到可解析的完整单词内容；普通 Chrome 保持 Runner 出口，目标路径为 183.24.92.161/CN。更新后的加密档案为 14,994,993 字节。
+- [制卡 43070141744](https://github.com/C0verSnow/LearnWords/actions/runs/43070141744)：从另一个 Runner 再次恢复同一会话，成功制作 approach、发布 Release、保存检查点并完成清理。该轮加密档案为 15,309,663 字节。
+- [实际 Release](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-tun-1794418718)：ZIP 含 APKG、manifest、README；内外 APKG 字节相同。读取 APKG 的 SQLite 确认 1 条笔记、1 张卡片，两个音频字段引用各自的 UK/US WAV；两段 WAV 都有有效帧和 22050 Hz 采样率，约 0.8 秒。声音来自 eSpeak NG 合成，非网站真人音频。
+- 最终富文本清空修复的同一源代码 `be55f35`：[Tests 43073535651](https://github.com/C0verSnow/LearnWords/actions/runs/43073535651) 和 [Tests 43073544831](https://github.com/C0verSnow/LearnWords/actions/runs/43073544831) 全部 13 项通过；[真实 Probe 43073545078](https://github.com/C0verSnow/LearnWords/actions/runs/43073545078) 再次完成登录恢复、查询、加密保存与清理。
+- Anki 客户端导入与播放按约定由用户在另一台电脑验收。以上功能分支结果不会自动切换 main；合并前 Telegram 生产入口仍使用 main 原有代码。
