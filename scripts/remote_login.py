@@ -28,6 +28,10 @@ def main():
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
             print("LOGIN_FORM " + json.dumps(snapshot(page), ensure_ascii=False), flush=True)
+            browser.close()
+            browser = None
+            os.environ["SUPABASE_PROFILE_OBJECT"] = "probe/preflight-profile.tar.gz"
+            save_profile(directory)
             return
         uuid.UUID(login_id)
         prefix = "login/" + login_id
@@ -84,6 +88,8 @@ def main():
     except Exception as error:
         # Browser exceptions can include sensitive input arguments; report only their class.
         print("Remote login stopped: " + type(error).__name__, flush=True)
+        if isinstance(error, RuntimeError) and str(error).startswith("浏览器目录"):
+            print("[DEBUG-profile] " + str(error), flush=True)
         raise SystemExit(1) from None
     finally:
         if browser is not None:

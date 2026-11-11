@@ -57,6 +57,7 @@ def save_profile(directory):
             archive.add(directory, arcname=".",
                         filter=lambda entry: entry if entry.isfile() or entry.isdir() else None)
         stream.seek(0)
+        print(f"[DEBUG-profile] archive bytes: {os.fstat(stream.fileno()).st_size}", flush=True)
         try:
             response = requests.post(profile_url(), data=stream, headers={
                 "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
@@ -66,6 +67,7 @@ def save_profile(directory):
         except requests.RequestException:
             raise RuntimeError("浏览器目录上传失败") from None
         if not response.ok:
+            print(f"[DEBUG-profile] upload HTTP {response.status_code}", flush=True)
             raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
 
 
