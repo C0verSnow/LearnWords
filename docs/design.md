@@ -31,3 +31,17 @@ GitHub 请求去重采用 Contents API 创建以 update_id 命名的文件，避
 DrissionPage 的 [ini](https://www.drissionpage.cn/advance/ini/) 只管理启动配置；真正登录状态在 [用户目录](https://www.drissionpage.cn/browser_control/connect_browser/)。现有 JSON 恢复实验在新 Ubuntu Runner 遇到地区限制，用户同意继续验证 ini 加完整用户目录：登录完成先关闭 Chrome，再打包 ini、Cookie 数据库、网页存储等文件，上传已有私有 Supabase；运行时下载解压，在 ini 基础上调整本 Runner 的用户目录与 Chrome 路径。归档不包含进程锁、socket 和符号链接，也不会进入 Git、Release 或 Actions artifact。
 
 这只是同平台新 Runner 的实验，不代表目录跨操作系统可迁移，也不能保证能绕开服务端会话或地区要求。多个实例不能同时使用一个目录，沿用既有串行工作流，不新增锁。目录归档由 Python 标准库 tarfile 生成与读取，不新增依赖。
+
+
+## 2026-11-11 DeepSeek 网页迁移
+
+用户指定使用 https://chat.deepseek.com/，并保留 ini + 完整用户目录。沿用现有 DrissionPage、私有 Supabase 和串行 Actions，不新增网页 API 代理或浏览器框架，不复制第三方代码。
+
+| 检索项目 | 维护与许可 | 实现与依赖 | 比较结论 |
+| --- | --- | --- | --- |
+| [cv-superding/dsh-deepseek-web-login](https://github.com/cv-superding/dsh-deepseek-web-login) | 372 stars，2026-11-04 有提交，Apache-2.0；[issue #23](https://github.com/cv-superding/dsh-deepseek-web-login/issues/23) 有维护者回复 | Node/Electron 登录捕获、独立浏览器 profile、私有接口与 SSE 适配 | 借鉴独立 profile 的边界；其私有接口方案有账号异常反馈，不采用请求重放或挑战求解实现。 |
+| [ForgetMeAI/FreeDeepseekAPI](https://github.com/ForgetMeAI/FreeDeepseekAPI) | 483 stars，2026-10-07 有提交，MIT；尚未核实 issue 响应，不纳入最终采用候选 | Node 代理、独立 Chrome 登录目录、导出认证文件 | 用于对比登录数据与运行环境的差异；不引入代理或其代码。 |
+| [microsoft/playwright](https://github.com/microsoft/playwright) | 99,813 stars，2026-11-11 有提交，Apache-2.0；已有活跃 issue 记录见上文 | 持久上下文，额外 Playwright 与浏览器依赖 | 继续借鉴关闭浏览器后保存独立目录的设计，用既有 DrissionPage 实现。 |
+| [CloakHQ/cloakbrowser](https://github.com/CloakHQ/cloakbrowser) | 32,825 stars，2026-11-10 有提交；仓库包装器 MIT | 修改后的 Chromium、Playwright/Puppeteer 包装器、约 200 MB 下载；当前 README 表明每次启动需要许可证 key，支持持久用户目录 | 用户指定的条件性备选。现不引入；若实际遇到自动化检测，再核实 DrissionPage 二进制接入、浏览器发行许可与已有 key。README 的检测通过宣传不等于 DeepSeek 已验证可用。 |
+
+新会话对象默认 `deepseek-profile.tar.gz`，不覆盖豆包对象。登录成功后关闭 Chrome，再归档 chrome.ini 和 profile 下的 Cookie、Local Storage、IndexedDB 等文件；仍排除普通网页缓存与运行中锁/socket。账号密码由 Infisical 读取，兼容用户现有键 `DEEPSEEK_USRE`，通过现有私有一次性指令通道填入远端网页，不进入公开 Actions 输入或日志。图形验证码保留同一个浏览器等待处理，不自动循环尝试。

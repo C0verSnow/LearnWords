@@ -1,54 +1,48 @@
 import argparse
 import os
+import time
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from src.config import load_config
-from src.doubao import Doubao, LoginExpired
-from src.session import export_session
+from src.deepseek import DeepSeek, LoginExpired
+from src.session import export_session, save_profile
 
 
 def main():
     config = load_config()
     parser = argparse.ArgumentParser(description="人工登录与会话恢复实验，不输出凭据")
     parser.add_argument("action", choices=("capture", "probe"))
-    parser.add_argument("--profile", help="仅本机比较用户目录；不要提交或公开上传这个目录")
+    parser.add_argument("--profile", help="包含 ini 和用户目录的独立实验目录")
     args = parser.parse_args()
-    browser = Doubao(config["doubao"], headless=args.action == "probe", profile=args.profile)
+    directory = Path(args.profile or ".session/deepseek-browser")
+    browser = DeepSeek(config["deepseek"], headless=args.action == "probe",
+                      profile=directory / "profile" if args.action == "capture" else None,
+                      ini_path=directory / "chrome.ini" if args.action == "capture" else None)
     try:
         if args.action == "capture":
-            browser.page.get(config["doubao"]["url"])
-            input("请在弹出的浏览器人工登录豆包，确认可以发消息后按回车：")
+            browser.page.get(config["deepseek"]["url"])
+            input("请在浏览器登录 DeepSeek，确认可以发消息后按回车：")
             browser.check_login()
-            export_session(browser.page, Path(os.getenv("SESSION_FILE", ".session/doubao.json")))
-            print("会话已写入忽略目录；请用全新浏览器分别测试 cookies 和 web_storage。")
+            export_session(browser.page, Path(os.getenv("SESSION_FILE", ".session/deepseek.json")))
+            browser.close()
+            browser = None
+            save_profile(directory)
+            print("ini 和完整用户目录已保存至私有 Supabase。")
         else:
+            started = time.monotonic()
             browser.restore()
-            config["doubao"]["timeout"] = 30
-            browser.page.listen.start("completion", method="POST")
             browser.generate("approach")
-            print("本次恢复及消息查询通过；不代表跨系统或后续会话必定有效。")
+            print(f"登录恢复及完整内容查询通过，用时 {time.monotonic() - started:.1f} 秒。")
     except (TimeoutError, LoginExpired):
-        from scripts.remote_login import storage
+        from scripts.remote_login import snapshot, storage
 
-        storage("POST", "probe/diagnostic.json", {
-            "mode": os.getenv("SESSION_MODE", "none"),
-            "body": browser.page.ele("tag:body").text,
-            "elements": [{"id": element.attr("data-testid"), "tag": element.tag,
-                          "text": element.text}
-                         for element in browser.page.eles('css:[data-testid]', timeout=0)],
-            "failed_icons": [element.parent().html for element in browser.page.eles(
-                'css:[data-testid="message_box_failed_icon"]', timeout=0)],
-            "requests": [{"path": urlsplit(packet.url).path, "failed": packet.is_failed,
-                          "status": None if packet.is_failed else packet.response.status,
-                          "error": packet.fail_info.errorText if packet.is_failed else "",
-                          "body": "" if packet.is_failed else str(packet.response.body)[:10000]}
-                         for packet in browser.page.listen.steps(timeout=1)],
-        })
-        print("[DEBUG-query] Probe failed; diagnostic saved privately.", flush=True)
+        storage("POST", "probe/deepseek-diagnostic.json", {
+            "mode": os.getenv("SESSION_MODE", "profile"), **snapshot(browser.page)})
+        print("Probe failed; page diagnostic saved privately.", flush=True)
         raise
     finally:
-        browser.close()
+        if browser is not None:
+            browser.close()
 
 
 if __name__ == "__main__":

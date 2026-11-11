@@ -173,7 +173,7 @@ class GitHubTests(unittest.TestCase):
             git("commit", "-m", "fixture")
             git("push", "-u", "origin", "feature/test")
             args = SimpleNamespace(request_id="tg-7", count=3, mode="next", chat_id="")
-            config = {"attempts": 2, "doubao": {}}
+            config = {"attempts": 2, "deepseek": {}}
             with patch("src.main.ROOT", root), patch("src.main.GitHub", return_value=self.github), \
                     patch.dict(os.environ, {"GITHUB_TOKEN": "test", "GITHUB_REPOSITORY": "owner/repo"}):
                 self.server.upload_status = 500

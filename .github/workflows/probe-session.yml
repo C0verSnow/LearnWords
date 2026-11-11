@@ -1,4 +1,4 @@
-name: Probe Doubao session
+name: Probe DeepSeek session
 on:
   workflow_dispatch:
     inputs:
@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'none' }}
+      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'profile' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'deepseek.json' }}
+      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'deepseek-profile.tar.gz' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

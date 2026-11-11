@@ -1,56 +1,28 @@
-# 豆包登录恢复实验
+# DeepSeek 登录恢复与远端验收
 
-## 已确认的 API，尚未确认的线上结论
+按用户要求迁移至 https://chat.deepseek.com/，正式方案为 **ini + 完整用户目录**。此前豆包已恢复登录，但真实 completion 返回 `710022004 / rate limited` 和验证要求，未生成首个 ZIP；豆包实验历史保留在 tasklist.md，不把其结果当作 DeepSeek 已通过的证据。
 
-已阅读 DrissionPage 4.1.1.4 发布包源码：`cookies(all_domains=True, all_info=True)` 调用 CDP Storage.getCookies，返回完整 Cookie 字段；默认读取只保留 name/value/domain。它不会自动包含 Local Storage、Session Storage、IndexedDB、Chrome 用户目录、操作系统密钥或服务端风控信息。
+## 会话保存
 
-`local_storage()` 与 `session_storage()` 分别读取当前源的网页存储，`set_user_data_path()` 指向 Chrome 用户数据目录。三者是不同的状态，不应统称为 Cookie。Session Storage 按标签页隔离，因此生产代码在同一标签页新建聊天，保留可能需要的网页状态。
+1. 运行远端 **Login DeepSeek session**，输入仅为随机 login_id。账号来自 Infisical LearnWords/dev，当前键名为 `DEEPSEEK_USRE` 与 `DEEPSEEK_PASSWORD`。
+2. 通过已有私有 Supabase 一次性指令通道填入账号密码并提交。状态与页面截图仅保存在同一私有 bucket。遇到图形验证保留浏览器，处理后继续，不重复启动登录或连续提交。
+3. 已登录标记必须是账户控件，不能仅凭输入框判断。登录成功后关闭 Chrome，待数据库写回，再归档 `chrome.ini` 和 `profile/`。
+4. 归档保存为私有 `browser-sessions/deepseek-profile.tar.gz`。包含 Cookie、Local Storage、IndexedDB 等用户数据；普通缓存和运行锁/socket 不属于需要恢复的登录数据，继续排除以符合存储上传大小限制。
+5. **Probe DeepSeek session** 使用新 Ubuntu Runner 下载归档，以 ini 加载参数，并将用户目录路径和 Chrome 路径改为当前 Runner 的实际位置。必须真实查询 approach 并解析完整 JSON，才算恢复与查询通过。
+6. 第二个新 Runner 重复探测，再用 **Make cards** 制作一个词并检查 Release ZIP。Telegram、Vercel 和 Release 流程沿用现有实现；Anki 导入由用户在另一台电脑完成。
 
-初次交付时没有真实账号或已部署服务，因此没有把 JSON 会话方案当作已经定型。下面记录后续账号配置与实验进度；本机网页已登录不等于 Ubuntu Runner 可以恢复登录。
+不将 macOS 的 Chrome 目录搬到 Linux，不把 ini 单独当作登录凭据。会话、账号密码和截图不进入 Git、公开 Release 或 Actions artifact。首次迁移验收在 feature 分支运行，生产分支仍需 review 后合并。
 
-## 2026-11-10 真实页面检查
+## 待验收
 
-- 已在用户登录的 Chrome 中查询 `approach`，网页返回包含七个所需字段的完整 JSON。
-- 通过 Chrome Elements 面板核对，输入框现在是 `chat_input_input` 内的 `contenteditable` 节点，登录头像位于 `data-sidebar-footer-account-menu` 内的 `chat_header_avatar_button`；已修正 `config.yaml`。新对话和回答节点的配置仍能对应真实页面。
-- 通过 Chrome Application 面板读取了当前豆包源的 29 个 Cookie、33 项 Local Storage 和 1 项 Session Storage，保存为被忽略的 `.session/doubao.json`。这种导出没有包含 IndexedDB 或整个 Chrome 用户目录。
-- 已上传至 LearnWords 独立 Supabase 项目的私有 `browser-sessions/doubao.json` 并回读核对。跨 Ubuntu Runner 的恢复和真实查询仍待远端 Probe 验证。
+| 项目 | 结果 |
+| --- | --- |
+| Infisical 账号读取 | 已读取，不输出值 |
+| DeepSeek 实际页面选择器 | 已检查本机 textarea 与账户控件；远端仍需核对 |
+| 远端账号密码登录与图形验证 | 待测 |
+| 关闭 Chrome 后保存 ini 与用户目录 | 待测 |
+| 两个新 Runner 恢复并查询完整内容 | 待测 |
+| 真实 Release ZIP 与 Telegram 结果 | 待测 |
+| Anki 客户端导入与发音 | 用户另机验收 |
 
-浏览器操作依据：[Chrome Cookie 面板](https://developer.chrome.com/docs/devtools/application/cookies)。没有读取其他站点的会话，没有把 Cookie 或网页存储写入 Git。
-
-## 待执行步骤
-
-以下命令给人工配置者使用；本次开发没有执行本地安装、浏览器登录或编译验证。Python 依赖为 `requirements-worker.txt`，Chrome 需要使用独立用户目录。
-
-1. 复制 `.env.example` 到 `.env`。在真实页面检查 `config.yaml` 的账户按钮、新建聊天、输入框、回答和生成中选择器。`authenticated` 必须仅在已经登录时出现，不能使用公共输入框替代身份判断。
-2. `python -m scripts.session capture --profile .session/profile`：人工登录，确认能够正常查询后按回车，导出 Cookie 与当前源网页存储至 `.session/doubao.json`。脚本不输出内容，不保存截图，目录不会提交。
-3. 关闭原浏览器。在 `.env` 设 `SESSION_MODE=cookies`，执行 `python -m scripts.session probe`，使用全新用户目录测试登录和真实消息提交。记录成功或失败，不仅看是否出现输入框。
-4. 改为 `SESSION_MODE=web_storage`，再以全新目录执行 probe。比较 Cookie 单独恢复与 Cookie 加两类网页存储的结果。
-5. 以 `SESSION_MODE=none` 执行 `python -m scripts.session probe --profile .session/profile`，比较原用户目录重启的结果。此项仅验证同机器目录；不能由此推断 macOS 用户目录能直接搬到 Linux。
-6. 若 JSON 恢复可行，将文件上传 Supabase **私有** bucket，配置 Runner secrets 与 SESSION_MODE，在 Actions 手动运行 **Probe Doubao session**，验证全新 Ubuntu 环境中的同一条查询。Supabase 只读取经过实验选择的对象，不建立业务表。
-7. 连续使用至少两个新的 Runner，间隔一段时间后重复；记录平均响应耗时、登录是否过期、能否发送新聊天、豆包是否限制访问。遇到验证码或人工校验停止并人工处理。
-8. 若只有原用户目录有效，或云 Runner 被拒绝，记录阻碍后另行决定是否需要保存其他状态。当前不实现未经验证的 Chrome 目录跨系统迁移，不声称无人值守已达成。
-
-| 实验 | 登录 | 查询 | 耗时 | 结论 |
-| --- | --- | --- | --- | --- |
-| 全新进程 + Cookie | 待测 | 待测 | 待测 | 未确认 |
-| 全新进程 + Cookie/Local/Session Storage | 待测 | 待测 | 待测 | 未确认 |
-| 同机原用户目录重启 | 待测 | 待测 | 待测 | 未确认 |
-| Ubuntu Runner 恢复 | 待测 | 待测 | 待测 | 未确认 |
-| 第二个新 Runner + 间隔后重试 | 待测 | 待测 | 待测 | 未确认 |
-
-## 上线验收
-
-- Telegram `/make 1` 只创建一个任务，重复的 update_id 不重复排队；无效参数和未授权用户不触发任务。
-- Ubuntu Runner 可恢复真实登录，独立聊天返回完整解释；逐词校验，多词失败不丢其他已完成内容。
-- 导入真实 APKG：英美 IPA、全部解释字段和音频存在；正面按客户端设置自动播放，离线可用。
-- 相同单词的更新卡包在目标 Anki 客户端按导入设置更新，不造成不必要的重复。
-- `/make 5 random` 发布 APKG/ZIP/manifest，结果数量与 Telegram 一致；失败任务原号重跑可恢复。
-- 发布失败没有新增 generated 记录，已公开 Release 的 Telegram 通知失败不会撤销成果。
-
-实验结果请继续带 Unix Timestamp 记录到 `tasklist.md`。不要将会话 JSON、用户目录、真实登录日志或密钥提交到公开仓库。
-
-## 远端手机号登录
-
-使用仓库现有 GitHub Actions Runner 打开全新 Chrome，通过 DrissionPage 官方 [ini 配置接口](https://www.drissionpage.cn/advance/ini/)保存并加载 `.session/remote-login.ini`。ini 只保存启动参数，登录会话仍单独导出到私有 Supabase 对象；不把手机号或验证码放进工作流输入、代码或日志。此前 Cookie 与 web_storage 的跨 Runner 探测均出现实际登录页，需按用户要求在远端重新登录后再验证。
-
-本次远端手机号实验已成功请求短信，并读到验证码页。实际验证码输入框没有 placeholder，按可见 input 定位后成功提交，但服务器返回“错误次数过多或验证码过期，请稍后重试”。本次没有取得新登录会话，没有覆盖正式会话文件，仍不能声称跨 Runner 恢复或制卡验收通过。
+所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；仅做静态/差异检查，验证使用已有远端 Tests 和 Probe 工作流。

@@ -10,11 +10,11 @@ from src.config import required_env
 
 
 def read_session():
-    path = Path(os.getenv("SESSION_FILE", ".session/doubao.json"))
+    path = Path(os.getenv("SESSION_FILE", ".session/deepseek.json"))
     if os.getenv("SUPABASE_URL"):
         url = (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/authenticated/"
                + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
-               + os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"))
+               + os.getenv("SUPABASE_SESSION_OBJECT", "deepseek.json"))
         try:
             response = requests.get(url, headers={
                 "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
@@ -92,7 +92,7 @@ def profile_url(authenticated=False):
     return (required_env("SUPABASE_URL").rstrip("/") + "/storage/v1/object/"
             + ("authenticated/" if authenticated else "")
             + os.getenv("SUPABASE_SESSION_BUCKET", "browser-sessions") + "/"
-            + os.getenv("SUPABASE_PROFILE_OBJECT", "doubao-profile.tar.gz"))
+            + os.getenv("SUPABASE_PROFILE_OBJECT", "deepseek-profile.tar.gz"))
 
 
 def profile_archive_entry(entry):
