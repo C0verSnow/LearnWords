@@ -35,6 +35,14 @@ def main():
         print("Remote login browser ready; private controls only.", flush=True)
         deadline = time.monotonic() + 900
         while time.monotonic() < deadline:
+            if page.ele(config["authenticated"], timeout=0):
+                path = directory / "doubao.json"
+                export_session(page, path)
+                storage("POST", os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"),
+                        json.loads(path.read_text()))
+                storage("POST", prefix + "/status.json", {"phase": "saved"})
+                print("Remote login completed; session saved privately.", flush=True)
+                return
             command = storage("GET", prefix + "/command.json")
             if command is None:
                 time.sleep(2)
@@ -59,18 +67,12 @@ def main():
                 value = command.get("value", "")
                 if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4,8}", value):
                     raise ValueError("Invalid verification code")
-                page.ele('css:input[placeholder*="验证码"]', timeout=10).input(value, clear=True)
+                fields = [element for element in page.eles('tag:input', timeout=10)
+                          if element.states.is_displayed]
+                fields[0].input(value, clear=True)
             elif action != "inspect":
                 raise ValueError("Unsupported login action")
             time.sleep(2)
-            if page.ele(config["authenticated"], timeout=0):
-                path = directory / "doubao.json"
-                export_session(page, path)
-                storage("POST", os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"),
-                        json.loads(path.read_text()))
-                storage("POST", prefix + "/status.json", {"phase": "saved"})
-                print("Remote login completed; session saved privately.", flush=True)
-                return
             storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
                                                        **snapshot(page)})
         storage("POST", prefix + "/status.json", {"phase": "timeout"})
