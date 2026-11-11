@@ -58,14 +58,15 @@ def save_profile(directory):
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
             archive.add(directory, arcname=".", filter=profile_archive_entry)
         encrypted = cipher.encrypt(stream.getvalue())
+        print(f"浏览器加密归档大小：{len(encrypted)} 字节。", flush=True)
         try:
             response = requests.post(profile_url(), data=encrypted, headers={
                 "Authorization": f"Bearer {required_env('SUPABASE_SERVICE_ROLE_KEY')}",
                 "apikey": required_env("SUPABASE_SERVICE_ROLE_KEY"),
                 "Content-Type": "application/octet-stream", "x-upsert": "true",
             }, timeout=120)
-        except requests.RequestException:
-            raise RuntimeError("浏览器目录上传失败") from None
+        except requests.RequestException as error:
+            raise RuntimeError(f"浏览器目录上传失败（{type(error).__name__}）") from None
         if not response.ok:
             raise RuntimeError(f"浏览器目录上传失败（HTTP {response.status_code}）")
 

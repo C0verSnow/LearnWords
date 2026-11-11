@@ -30,6 +30,7 @@ class Doubao:
         options.set_local_port(9222).headless(headless)
         options.set_argument("--no-sandbox")
         options.set_argument("--window-size=1440,1000")
+        options.set_argument("--no-first-run")
         options.remove_argument("--proxy-server")
         options.set_argument("--no-proxy-server")
         # Linux runners have no shared desktop keyring; encryption at rest is handled by the archive.
