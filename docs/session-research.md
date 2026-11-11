@@ -52,3 +52,5 @@
 ## 远端手机号登录
 
 使用仓库现有 GitHub Actions Runner 打开全新 Chrome，通过 DrissionPage 官方 [ini 配置接口](https://www.drissionpage.cn/advance/ini/)保存并加载 `.session/remote-login.ini`。ini 只保存启动参数，登录会话仍单独导出到私有 Supabase 对象；不把手机号或验证码放进工作流输入、代码或日志。此前 Cookie 与 web_storage 的跨 Runner 探测均出现实际登录页，需按用户要求在远端重新登录后再验证。
+
+本次远端手机号实验已成功请求短信，并读到验证码页。实际验证码输入框没有 placeholder，按可见 input 定位后成功提交，但服务器返回“错误次数过多或验证码过期，请稍后重试”。本次没有取得新登录会话，没有覆盖正式会话文件，仍不能声称跨 Runner 恢复或制卡验收通过。
