@@ -63,6 +63,10 @@ def start_split():
         ip daddr @doubao4 counter meta mark set meta mark | 0x100
         ip6 daddr @doubao6 counter meta mark set meta mark | 0x100
       }
+      chain lw_mss {
+        type filter hook postrouting priority mangle; policy accept;
+        oifname "tailscale0" tcp flags syn counter tcp option maxseg size set rt mtu
+      }
       chain lw_postrouting {
         type nat hook postrouting priority srcnat; policy accept;
         oifname "tailscale0" meta mark & 0x100 == 0x100 counter masquerade

@@ -84,7 +84,7 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 官方 Exit Node 并不原生支持域名规则。`.github/actions/tailscale-doubao` 先记录原网卡、DNS 和公网出口，再启用已有 Exit Node；仅在本次 Runner 安装 `dnsmasq-base` 与 `nftables`。dnsmasq 监听回环地址，把目标解析结果写入预建的 IPv4/IPv6 nft 集合。Chrome 管理策略关闭 DoH，确保使用系统 DNS；未设置 HTTP/SOCKS 代理。
 
-`inet learnwords` 的 output route 链给集合内地址打 `0x100` 标记，大陆 DNS 查询同样打标；postrouting 仅对这些出 TUN 的包做 masquerade，避免 output 改路由后保留原始网卡源地址。Tailscale 自身的 `0x80000/0xff0000` 标记优先保留。策略规则在官方 underlay 规则之后、默认 Tailscale 规则之前：5260 为目标标记查表 52，5261 保留 overlay 路由，5265 查原 main 表，5266 终止没有原生路由的流量，避免普通 IPv6 意外使用大陆出口。集合随任务结束清空，不维护静态 CDN IP 表。
+`inet learnwords` 的 output route 链给集合内地址打 `0x100` 标记，大陆 DNS 查询同样打标；postrouting 仅对这些出 TUN 的包做 masquerade，避免 output 改路由后保留原始网卡源地址。另在 postrouting 对 TUN 的 TCP SYN 按实际路由 MTU 限制 MSS；真实诊断发现改路由后 SYN 仍为 1460，超过 Tailscale 1280 MTU，豆包 TLS 握手超时。Tailscale 自身的 `0x80000/0xff0000` 标记优先保留。策略规则在官方 underlay 规则之后、默认 Tailscale 规则之前：5260 为目标标记查表 52，5261 保留 overlay 路由，5265 查原 main 表，5266 终止没有原生路由的流量，避免普通 IPv6 意外使用大陆出口。集合随任务结束清空，不维护静态 CDN IP 表。
 
 预检先确认普通 HTTPS 仍是记录的 Runner 公网 IP；再临时把一个 Cloudflare 验证 IP 放进目标集合，实测同一打标/NAT/TUN 路径返回服务器公网 IP 和 CN，随后删除并复验原出口。该验证 IP 不属于持久分流规则。随后检查目标域名已入集合，GitHub/PyPI/Supabase 地址没有命中集合且走原网卡，并访问真实豆包页面。浏览器还会独立检查普通请求出口；登录和对话另做 session Probe。
 
@@ -92,4 +92,4 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 
 所有浏览器工作流的 `always()` 收尾先取消 Exit Node，再恢复系统 DNS、结束本任务 dnsmasq、删除专属规则/nft 表与 Chrome DNS 策略；官方 Action post 退出临时节点。手动诊断命令为 `python -m scripts.tailscale_split stop`，只在对应 Runner 上执行。
 
-参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[dnsmasq nftset](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。GitHub 检索与方案比较见 [设计记录](design.md)。
+参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[dnsmasq nftset](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)、[Tailscale MTU/MSS 排障](https://tailscale.com/docs/reference/troubleshooting/network-configuration/tcp-connection-two-devices)、[nft MSS 规则](https://wiki.nftables.org/wiki-nftables/index.php/Mangling_packet_headers)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。GitHub 检索与方案比较见 [设计记录](design.md)。
