@@ -1,0 +1,3 @@
+# DNS suffix matches the name and its subdomains. Other vendor domains stay on the runner.
+doubao.com
+lf3-short.ibytedapm.com

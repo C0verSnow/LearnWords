@@ -68,7 +68,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
-      - uses: ./.github/actions/tailscale-exit
+      - uses: ./.github/actions/tailscale-doubao
         with:
           client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           client-secret: ${{ secrets.TS_OAUTH_SECRET }}
@@ -83,7 +83,7 @@ jobs:
       - name: Restore runner routing and remove private working files
         if: always()
         run: |
-          sudo tailscale set --exit-node= || true
+          python -m scripts.tailscale_split stop || true
           pkill -x chrome || true
           rm -rf .session
       - name: Preserve products and recovery data even on failure

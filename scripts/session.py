@@ -10,7 +10,6 @@ import requests
 
 from src.config import load_config, required_env
 from src.doubao import Doubao, LoginExpired
-from src.network import restore_runner_route
 from src.session import restore_profile, save_profile
 
 
@@ -71,7 +70,6 @@ def migrate_legacy_profile():
     with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as restored:
         with tarfile.open(fileobj=io.BytesIO(response.content), mode="r:gz") as archive:
             archive.extractall(source, filter="data")
-        restore_runner_route()
         save_profile(source)
         restore_profile(restored)
         source_files = {p.relative_to(source): p.read_bytes() for p in Path(source).rglob("*") if p.is_file()}

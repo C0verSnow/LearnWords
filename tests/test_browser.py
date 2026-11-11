@@ -158,16 +158,7 @@ class BrowserTests(unittest.TestCase):
                         self.assertTrue((browser.directory / "chrome.ini").is_file())
                         self.assertEqual(browser.page.local_storage("local-probe"), "value")
                         self.assertIn("probe", [cookie["name"] for cookie in browser.page.cookies()])
-                        try:
-                            self.assertEqual(browser.generate("approach")["Word"], "approach")
-                        except TimeoutError:
-                            print("[DEBUG-browser-query] " + browser.page.run_js("""
-                                return JSON.stringify({body: document.body.innerText,
-                                  editor: document.querySelector('#editor').value,
-                                  buttons: [...document.querySelectorAll('button')].map(e =>
-                                    ({id:e.id, box:e.getBoundingClientRect().toJSON()}))});
-                            """), flush=True)
-                            raise
+                        self.assertEqual(browser.generate("approach")["Word"], "approach")
                     finally:
                         browser.close()
                     with patch.dict(os.environ, {"BROWSER_DIRECTORY": str(Path(directory) / "second-runner")}):

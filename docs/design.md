@@ -108,3 +108,17 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 远端 Tests 43012893373 在补充 no-first-run 后全部 13 项通过；同一测试此前 43012241551 在正确端口和启动参数下连接失败。故障来自首次启动引导，采用标准 no-first-run 跳过初始浏览器向导，仍为有头 Chrome、禁用沙箱，不修改指纹；临时启动日志和参数输出已清理。
 
 真实二进制归档迁移 43013404238 的包体为 42,578,541 字节，已小于原始存储边界，但经大陆出口向 Supabase 上传在 120 秒后发生 ConnectionError。因此不能把此次异常直接归因于提供商容量，也不能断言换 R2 就能解决。将路由切换与浏览器生命周期明确绑定：浏览器期间维持全局中国大陆出口，关闭后恢复 Runner 默认路由再上传加密备份；显式 migrate 在读取旧档后恢复默认路由再写新档。它是按阶段切换，没有部署第二个代理或引入任意域名分流。
+
+
+## Runner 域名分流（替代上面的全局/按阶段切换）
+
+用户要求豆包经中国大陆，其余走 Runner。GitHub 检索核对时间为 2026-11-11：
+
+| 候选 | 维护、许可 | 实现思路、依赖及边界 | 本次选择 |
+| --- | --- | --- | --- |
+| [tailscale/tailscale](https://github.com/tailscale/tailscale) | 38,922 stars，2026-11-11 提交，BSD-3-Clause；已有 issue 响应核对记录见前文 | 官方 App Connector 解析域名并广播 IP 路由，需要相应 Tailnet 配置；共用 IP 无法按域名区分 | 保留其已验证的 Exit Node/TUN；不引入 Connector 身份和全网 DNS 变更，见 appconnector-notes.md |
+| [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) | 9,884 stars，2026-11-10 提交，MIT | 维护域名分类，需 V2Ray 等路由运行时；宽分类可能误带无关 CDN | 借鉴明确域名清单的设计，不引入代理运行时或整个供应商列表 |
+
+另阅读 [mossdef-org/pbr](https://github.com/mossdef-org/pbr)（原 stangri/pbr）作为实现对照：19 stars，2026-11-09 提交，AGPL-3.0，因迁移后星数低不作为主要候选。OpenWrt 依赖 UCI/fw4，不能直接装到 Ubuntu；[issue #112](https://github.com/mossdef-org/pbr/issues/112) 记录同域名多策略 nftset 的限制。本次只有一个目标集合，不引入多出口策略生成器，也不复制其代码。实际使用的是 [dnsmasq 官方 nftset 接口](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) 以及 Ubuntu 已有的 nftables/ip rule。
+
+规则仅存在于短命 Runner；本地 DNS 动态填 IPv4/IPv6 集合，nft output route 标记和专用 postrouting SNAT 交给 Tailscale 表 52，其余查 main。不得仅靠 `ip route get` 宣称成功：远端 network Probe 会实际比较普通 HTTPS 与临时目标 HTTPS 的公网出口，并检查 GitHub/PyPI/Supabase 走原网卡。详细规则、共用 IP 边界与清理步骤见 tailscale.md。

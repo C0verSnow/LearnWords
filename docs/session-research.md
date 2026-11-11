@@ -4,7 +4,7 @@
 
 当前代码使用 Xvfb + 有头 Chrome、`configs/dp.ini`、固定的完整用户目录，并将 ini 与用户目录一起加密保存到私有 Supabase 对象 `doubao-profile.tar.gz.enc`。首次用 Probe 的 `migrate` 入口读取旧 `doubao-profile.tar.gz` 并加密回读核对，然后在新 Runner 用 `session` 入口验证登录和一次真实查询。正式工作流关闭 Chrome 后保存更新；登录未确认时不覆盖归档。
 
-服务器原本被上游 OpenClash 分流至日本；按其 MAC 绕过并排除 DNS 劫持后，同一服务器 Cloudflare trace 已返回 CN。远端 Runner 和 Chrome 仍须各自验证实际出口与服务器一致。部署、重新登录和故障处理步骤见 [Tailscale 指南](tailscale.md)；实际结果带 Unix Timestamp 记录在 tasklist.md。
+服务器原本被上游 OpenClash 分流至日本；按其 MAC 绕过并排除 DNS 劫持后，同一服务器 Cloudflare trace 已返回 CN。当前已改为域名分流：豆包目标的 TUN 路径须与服务器出口一致，Runner 和 Chrome 的普通请求须保持 Runner 原出口。部署、重新登录和故障处理步骤见 [Tailscale 指南](tailscale.md)；实际结果带 Unix Timestamp 记录在 tasklist.md。
 
 以下是此前实验记录。
 

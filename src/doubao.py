@@ -4,7 +4,7 @@ from pathlib import Path
 
 from src.content import parse_content, prompt
 from src.config import ROOT
-from src.network import verify_browser_exit, restore_runner_route
+from src.network import verify_browser_exit
 from src.session import read_session, restore_profile, restore_session, save_profile
 
 
@@ -109,6 +109,5 @@ class Doubao:
 
     def close(self):
         self.page.quit()
-        restore_runner_route()
         if self.persist:
             save_profile(self.directory)

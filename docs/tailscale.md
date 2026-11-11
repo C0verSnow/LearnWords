@@ -2,7 +2,7 @@
 
 ## 当前方案
 
-GitHub-hosted Ubuntu 24.04 Runner 执行 Python、Xvfb、有头 Chromium 和 DrissionPage。大陆服务器只运行 Tailscale Exit Node，普通网络流量由 tailscale0 和 Tailscale 路由转发，不在 Chrome 配置 HTTP/SOCKS 代理，不再启动 mihomo。
+GitHub-hosted Ubuntu 24.04 Runner 执行 Python、Xvfb、有头 Chromium 和 DrissionPage。大陆服务器只运行 Tailscale Exit Node，豆包目标流量由 tailscale0 和 Tailscale 路由转发，其余流量保持 Runner 原出口，不在 Chrome 配置 HTTP/SOCKS 代理，不再启动 mihomo。
 
 当前服务器为 `192.168.1.245`，Tailscale IPv4 为 `100.124.220.89`。这两个地址用途不同，Runner 使用后者。服务器处于 NAT 后不影响方案，Tailscale 可直连或经 DERP 中继；没有承诺带宽与延迟。
 
@@ -18,7 +18,7 @@ OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出
 6. 保存下表配置到本仓库 `.env`、私有 Infisical 和 GitHub Actions；不要把真实值写入仓库、工作流输入、Issue 或日志。`BROWSER_PROFILE_KEY` 是 `base64.urlsafe_b64encode(os.urandom(32)).decode()` 生成的 URL-safe base64 32 字节随机密钥；丢失就无法解密已有归档，必须私有备份。
 7. 手动运行 **Tests**，只在远端执行测试。随后运行 **Probe browser access and session**，先选择 `network`，确认 TUN、IPv4/IPv6、DNS、实际出口及豆包 HTTP。
 8. 对现有未加密对象，只运行一次 Probe 的 `migrate`。它读取旧 `doubao-profile.tar.gz`，加密到独立对象，下载解密回读比对；不会打开浏览器，也不会重新发送短信。
-9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后恢复 Runner 默认路由，再加密保存更新。应再用一个新 Runner 复验。
+9. 运行 Probe 的 `session`：新 Runner 解密完整用户目录，启动有头 Chrome，核对 Chrome 出口、登录、发送一次 approach 并解析完整内容。关闭后经 Runner 原出口加密保存更新。应再用一个新 Runner 复验。
 10. 只有会话确实失效时才运行 **Login Doubao session**。`login_id` 使用 UUID，不含手机号或验证码。通过已有私有 Supabase 单次指令通道填写页面，同一浏览器等待人工操作，成功后先关闭 Chrome，再加密保存完整目录。遇站点本人验证，先完成验证，不能把登录页能打开算作登录成功。
 11. 真实 Probe 通过后，用 **Make cards** 制作一个词，核对 Release ZIP/APKG/manifest 与音频。Telegram 仍按既有 Vercel 入口使用相同工作流；Anki 客户端导入由用户另机验收。
 
@@ -49,7 +49,7 @@ Telegram、GitHub 发布凭据沿用 README 配置。生产 Secrets 不注入不
 
 关闭 Chrome 后，Python 将 ini 与整个根目录 gzip 打包，排除普通缓存、锁、socket 与符号链接，再用 AES-GCM 认证加密上传。恢复时先验证并解密，再用 tarfile 的 data filter 解压；密钥错误或文件被篡改就停止，不降级到明文。新对象只存于已有私有 bucket，既不会提交 Git，也不会上传公开 artifact/Release。AESGCM 接口会将压缩档案放进内存，适合当前几十 MB 的会话目录，不适合无限增长的文件库。
 
-沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。正常关闭 Chrome 后先退出出口路由，再上传加密档案；失败时仍执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
+沿用所有浏览器工作流共用的并发组，避免同时覆盖对象。正常关闭 Chrome 后经 Runner 原出口上传加密档案；失败时仍执行退出路由、终止残留 Chrome 和删除私有工作目录；官方 Action 的 post 步骤负责退出 Tailscale。Chrome 未正常关闭时不归档其数据库，旧备份仍可恢复。未确认登录的目录不会覆盖正式归档。
 
 Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影响 profile。`--password-store=basic` 避免依赖跨 Runner 的桌面密钥服务，但运行目录在 Runner 上仍含敏感数据，必须依靠隔离环境、加密备份及清理。不能保证复制目录一定能恢复登录，应以新 Runner 的真实结果为准。
 
@@ -63,19 +63,33 @@ Ubuntu 版本固定为 24.04，Chrome 由镜像提供，版本升级仍可能影
 | 找不到出口或未选中 | 确认服务器在线、广播和后台批准均完成，TS_EXIT_NODE 填 Tailscale IPv4 |
 | 没有 tailscale0 | 使用 Linux 内核 TUN，检查工作流 tailscaled-args，不改成 userspace-networking |
 | IP 与服务器不一致 / 地区不是 CN | 停止豆包访问；检查选中出口、上游 OpenClash、DNS 与宽带动态公网地址 |
-| IPv6 不通 | 无公网 IPv6 的服务器可以只用已确认 IPv4；若配置了期望 IPv6 则必须检查通过。IPv6 能出网却没有对应服务器地址时也会停止 |
+| IPv6 不通 | 目标 AAAA 同样进入 TUN 集合，不从 Runner 绕过；大陆服务器无公网 IPv6 时由浏览器回退可达 IPv4。普通流量只使用 Runner 原有 IPv6，原来没有就保持不可达 |
 | DNS 返回 198.18.x.x | 通常是上游 fake-IP；检查服务器是否仍被 DNS 劫持，不能直接将假地址当真实网站 IP |
 | 出口 CN 但豆包不能用 | 继续检查网页状态、区域限制提示、登录和单次真实查询；IP 地区不是可用性保证 |
 | 解密失败 | 核对密钥及对象名，不重建密钥覆盖已有配置，不自动改读明文对象 |
 | profile 下载 400/404 | 确认已执行显式 migrate，或已完成一次新 Login；不要把旧 gzip 对象直接改名为 .enc |
 | 登录未确认 | 保存私有诊断，核对实际页面；确实失效才重新登录，不连续发短信 |
 | 返回发送失败 / 710022004 | 停止剩余单词和自动重试，检查账号验证与网站提示，不能用重复查询验收 |
-| GitHub/Supabase 下载超时 | 浏览器运行阶段这些流量也可能经过大陆出口；关闭后的加密备份使用默认网络；先区分站点连通性和隧道问题，收尾仍恢复 Runner 路由 |
+| GitHub/Supabase 下载超时 | 这些域名保持 Runner 出口；检查原始 DNS、直连预检与存储状态，收尾仍清理分流规则 |
 
-## 后续分流边界
+## 当前 TUN 分流规则
 
-当前是全局出口阶段，Python 依赖在启用出口前安装，浏览器任务期间的普通流量仍走当前出口；Chrome 关闭后恢复 Runner 默认网络，再上传加密归档、访问 GitHub 和发送任务通知。没有承诺只让豆包走中国大陆，也没有额外安装 mihomo、Clash 或 sing-box。
+`configs/doubao-domains.txt` 每行一个 DNS 后缀，匹配该名称及其子域名。当前包含 `doubao.com` 和页面实际引用的 `lf3-short.ibytedapm.com`；没有把整个字节 CDN 加入规则。新增域名须先观察真实请求，再通过 network Probe 复验。
 
-未来如需按目标分流，应单独设计豆包关联域名/IP、DNS 解析与 App Connector，并实测 IPv4/IPv6 和工作流控制流量。Tailscale Exit Node 本身不是任意域名规则引擎。
+| 目标 | DNS | 数据出口 |
+| --- | --- | --- |
+| 清单内域名及子域名 | 大陆 DNS 223.5.5.5，经 Tailscale | 大陆 192.168.1.245 的 Exit Node |
+| GitHub、Supabase、PyPI、其他地址 | Runner 原始 DNS | Runner 原出口 |
+| Tailscale 自身连接 | 官方 underlay 标记及路由 | Runner 原出口 |
 
-参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。检索比较见 [设计记录](design.md)。
+官方 Exit Node 并不原生支持域名规则。`.github/actions/tailscale-doubao` 先记录原网卡、DNS 和公网出口，再启用已有 Exit Node；仅在本次 Runner 安装 `dnsmasq-base` 与 `nftables`。dnsmasq 监听回环地址，把目标解析结果写入预建的 IPv4/IPv6 nft 集合。Chrome 管理策略关闭 DoH，确保使用系统 DNS；未设置 HTTP/SOCKS 代理。
+
+`inet learnwords` 的 output route 链给集合内地址打 `0x100` 标记，大陆 DNS 查询同样打标；postrouting 仅对这些出 TUN 的包做 masquerade，避免 output 改路由后保留原始网卡源地址。Tailscale 自身的 `0x80000/0xff0000` 标记优先保留。策略规则在官方 underlay 规则之后、默认 Tailscale 规则之前：5260 为目标标记查表 52，5261 保留 overlay 路由，5265 查原 main 表，5266 终止没有原生路由的流量，避免普通 IPv6 意外使用大陆出口。集合随任务结束清空，不维护静态 CDN IP 表。
+
+预检先确认普通 HTTPS 仍是记录的 Runner 公网 IP；再临时把一个 Cloudflare 验证 IP 放进目标集合，实测同一打标/NAT/TUN 路径返回服务器公网 IP 和 CN，随后删除并复验原出口。该验证 IP 不属于持久分流规则。随后检查目标域名已入集合，GitHub/PyPI/Supabase 地址没有命中集合且走原网卡，并访问真实豆包页面。浏览器还会独立检查普通请求出口；登录和对话另做 session Probe。
+
+按解析 IP 分流存在共用 IP 边界：其他域名若与目标共用 IP，也可能走大陆。DNS 缓存绕过、未知关联域名和后续 CDN 变化仍需通过实际页面观察维护清单，不能声称能区分共用 IP 上每一个 HTTPS 域名。当前不安装 App Connector，理由见 [研究](appconnector-notes.md)。
+
+所有浏览器工作流的 `always()` 收尾先取消 Exit Node，再恢复系统 DNS、结束本任务 dnsmasq、删除专属规则/nft 表与 Chrome DNS 策略；官方 Action post 退出临时节点。手动诊断命令为 `python -m scripts.tailscale_split stop`，只在对应 Runner 上执行。
+
+参考：[Tailscale Exit Nodes](https://tailscale.com/docs/features/exit-nodes)、[官方 GitHub Action](https://github.com/tailscale/github-action)、[dnsmasq nftset](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)、[AES-GCM](https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.primitives.ciphers.aead.AESGCM)。GitHub 检索与方案比较见 [设计记录](design.md)。

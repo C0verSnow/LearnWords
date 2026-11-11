@@ -1,5 +1,5 @@
-name: Mainland Tailscale exit
-description: Connect an ephemeral runner with the Linux TUN and verify the mainland exit
+name: Doubao Tailscale split routing
+description: Route Doubao domains through the mainland TUN and keep other traffic on the runner
 inputs:
   client-id:
     required: true
@@ -13,6 +13,14 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install domain routing dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dnsmasq-base nftables
+    - name: Record the original runner network
+      shell: bash
+      run: python -m scripts.tailscale_split baseline
     - uses: tailscale/github-action@v4
       with:
         oauth-client-id: ${{ inputs.client-id }}
@@ -21,9 +29,12 @@ runs:
         version: '1.104.5'
         hostname: learnwords-${{ github.run_id }}-${{ github.run_attempt }}
         tailscaled-args: --tun=tailscale0
-        args: --accept-dns=true --exit-node=${{ inputs.exit-node }} --exit-node-allow-lan-access=false
+        args: --accept-dns=false --exit-node=${{ inputs.exit-node }} --exit-node-allow-lan-access=false
         ping: ${{ inputs.exit-node }}
         log-mode: quiet
-    - name: Verify TUN, DNS, mainland IP and Doubao HTTP
+    - name: Install runner-only domain rules
+      shell: bash
+      run: python -m scripts.tailscale_split start
+    - name: Verify target and default egress
       shell: bash
       run: python -m scripts.check_network
