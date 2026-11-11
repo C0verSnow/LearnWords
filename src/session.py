@@ -62,12 +62,6 @@ def save_profile(directory):
         with tarfile.open(fileobj=stream, mode="w:gz") as archive:
             archive.add(directory, arcname=".", filter=profile_archive_entry)
             archived_files = {Path(entry.name) for entry in archive.getmembers() if entry.isfile()}
-            sizes = {}
-            for entry in archive.getmembers():
-                if entry.isfile():
-                    group = "/".join(Path(entry.name).parts[:3])
-                    sizes[group] = sizes.get(group, 0) + entry.size
-            print("[DEBUG-profile-size] " + json.dumps(sorted(sizes.items(), key=lambda item: item[1], reverse=True)[:10]), flush=True)
         nonce = os.urandom(12)
         encrypted = nonce + cipher.encrypt(nonce, stream.getvalue(), PROFILE_AAD)
         print(f"浏览器加密归档大小：{len(encrypted)} 字节。", flush=True)

@@ -122,8 +122,22 @@ def request_status(page):
                         "protocol": response.get("protocol"), "ip": response.get("remoteIPAddress"),
                         "worker": response.get("fromServiceWorker", False),
                         "cached": response.get("fromDiskCache", False),
-                        "in_target_set": response.get("remoteIPAddress") in targets})
+                        "in_target_set": response.get("remoteIPAddress") in targets,
+                        "send_gate": status_fields(body) if urlsplit(packet.url).path == "/im/message/send_rate_limit" else None})
     return {"completed": results, "inflight": pending}
+
+
+def status_fields(value):
+    # Rate decisions can contain verification credentials; retain only status data.
+    if isinstance(value, dict):
+        return {key: status_fields(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [status_fields(item) for item in value[:10]]
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if value in ("verify", "normal", "allow", "deny", "semantic_reasoning", "doubao_message_web"):
+        return value
+    return {"string_length": len(value)}
 
 
 if __name__ == "__main__":

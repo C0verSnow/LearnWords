@@ -54,7 +54,6 @@ class Doubao:
         self.persist = mode == "profile"
 
     def generate(self, word):
-        self.page.get(self.config["url"])
         self.check_login()
         tab = self.page
         if self.config.get("new_chat"):
