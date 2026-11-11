@@ -25,6 +25,17 @@ def main():
             browser.restore()
             browser.generate("approach")
             print("本次恢复及消息查询通过；不代表跨系统或后续会话必定有效。")
+    except TimeoutError:
+        from scripts.remote_login import storage
+
+        storage("POST", "probe/diagnostic.json", {
+            "body": browser.page.ele("tag:body").text,
+            "elements": [{"id": element.attr("data-testid"), "tag": element.tag,
+                          "text": element.text}
+                         for element in browser.page.eles('css:[data-testid]', timeout=0)],
+        })
+        print("[DEBUG-query] Query timed out; diagnostic saved privately.", flush=True)
+        raise
     finally:
         browser.close()
 
