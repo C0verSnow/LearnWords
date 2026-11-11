@@ -1,6 +1,11 @@
 name: Login Doubao session
 on:
   workflow_dispatch:
+    inputs:
+      login_id:
+        description: Private login control identifier; leave empty to inspect only
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -12,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      LOGIN_ID: ${{ inputs.login_id }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
