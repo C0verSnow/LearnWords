@@ -100,3 +100,5 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 为保持不同 Linux Runner 的 Cookie 密钥机制一致，Chrome 使用 password-store=basic；静态存储由独立的 BROWSER_PROFILE_KEY 保护。固定 Ubuntu 24.04，Chrome 版本由镜像提供，仍可能升级；跨 Runner 复用必须通过真实 Probe，失效时重新人工登录。以用户所要求的 --no-sandbox 启动会降低 Chrome 沙箱隔离，因此仅在一次性受信任 Runner 使用。
 
 第一阶段普通流量通过 Exit Node；Python 依赖和 GitHub Action 下载在启用出口前完成，后续 GitHub/Supabase/Telegram 仍走当前全局出口，收尾恢复 Runner 路由。第二阶段的域名/IP/App Connector 分流仅预留设计边界，尚未实现，也不声称 Exit Node 原生支持任意域名规则。
+
+节点探测参考 [Tailscale 1.104.5 ping 源码](https://github.com/tailscale/tailscale/blob/v1.104.5/cmd/tailscale/cli/ping.go)：默认 until-direct=true，成功经 DERP 返回也可能因未建立直连返回非零。检查显式接受中继，节点 ping 作为诊断；真正出口是否可用仍由无代理 HTTPS、期望公网 IP 和 CN 地区比对决定。

@@ -44,10 +44,11 @@ def verify_tailscale():
     peer = next((peer for peer in status.get("Peer", {}).values() if node in peer.get("TailscaleIPs", [])), None)
     if not peer or not peer.get("Online") or not peer.get("ExitNode"):
         raise RuntimeError("指定 Exit Node 不在线或未选中，请检查出口批准和访问规则")
-    result = subprocess.run(["tailscale", "ping", "--c=1", "--timeout=20s", node],
+    result = subprocess.run(["tailscale", "ping", "--c=1", "--until-direct=false", "--timeout=20s", node],
                             capture_output=True, text=True)
+    print(result.stdout + result.stderr, flush=True)
     if result.returncode:
-        raise RuntimeError("Exit Node 连接探测失败，直连或中继均未确认")
+        print("节点 ping 未确认；继续用实际 HTTPS 出口验证，不能仅凭 ping 判断出口可用。", flush=True)
     print("Tailscale 已连接，内核 TUN 存在，指定 Exit Node 在线且已选中。", flush=True)
 
 
