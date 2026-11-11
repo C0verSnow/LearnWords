@@ -1,7 +1,13 @@
-name: Probe Doubao session
+name: Probe browser access and session
+run-name: probe-${{ inputs.target || 'doubao' }}-${{ github.run_id }}
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: Doubao session query or DeepSeek page access only
+        type: choice
+        options: [doubao, deepseek]
+        default: doubao
       session_mode:
         description: Session restore experiment (empty uses repository variable)
         required: false
@@ -34,7 +40,12 @@ jobs:
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Start private Hong Kong proxy
         run: python -m scripts.mihomo
-      - run: python -m scripts.session probe
+      - name: Probe Doubao session
+        if: inputs.target != 'deepseek'
+        run: python -m scripts.session probe
+      - name: Inspect DeepSeek page access
+        if: inputs.target == 'deepseek'
+        run: python -m scripts.probe_deepseek
       - name: Stop TUN before runner cleanup
         if: always()
         run: sudo pkill -x mihomo || true

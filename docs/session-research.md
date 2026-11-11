@@ -32,3 +32,9 @@
 ## TUN 对照（用户恢复后）
 
 Probe 已改为 MIHOMO_TUN=1，开启虚拟网卡、自动路由及 DNS 劫持；Chrome 不使用单独 HTTP 代理。沿用相同香港候选顺序和 profile，只进行一次真实查询。具体结果见 tasklist.md。其余 Login、Make cards 工作流仍维持原代理方式。
+
+本次 [TUN Probe 42972029205](https://github.com/C0verSnow/LearnWords/actions/runs/42972029205) 已完成：TUN 开关、虚拟网卡、无 HTTP 代理的 HK 出口、Chrome HK 出口和 profile 登录检查均通过。只发出一次 completion，HTTP 200 内仍返回 STREAM_ERROR、710022004、rate limited，且要求 semantic_reasoning 验证。TUN 已在工作流收尾阶段停止。本次结果说明开启 TUN 没有解决当前账户的发送拒绝；仍需处理服务端验证，不继续重复发消息或短信。
+
+## DeepSeek 网页访问对照
+
+用户随后指定检查 https://chat.deepseek.com/。在同一 Probe 工作流选择 target=deepseek，复用相同香港 TUN 设置；用全新独立 Chrome 目录依次读取根页面和 /sign_in，记录主文档 HTTP 状态、密码框/聊天框以及 CloudFront/浏览器验证提示。此检查仅访问页面，不读取或提交 DeepSeek 账号密码，不改变豆包制卡入口。页面诊断只保存到现有私有 bucket。

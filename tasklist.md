@@ -5,6 +5,7 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794378392] TUN 单次对照 Probe 42972029205 已完成：控制接口确认启用、LearnWords 虚拟网卡存在、不设置 HTTP 代理的请求与 Chrome 出口均 HK，profile 登录恢复成功；只发送一次 completion，HTTP 200 内仍为 STREAM_ERROR / 710022004 / rate limited，服务端仍要求 semantic_reasoning 验证。已执行 TUN 清理，不再重复发送豆包请求。
 - [1794377792] 清理临时采集后的最终远端 Tests 42971075743 通过；功能代码已验证，后续本次提交仅补充测试结果记录。当前分支 feature/doubao-mihomo，main 未更改；剩余是真实豆包人工验证、ZIP 和 Telegram 制卡验收。未运行本地编译或测试。
 - [1794377675] 香港代理代码已推送 feature/doubao-mihomo；Probe 42970493648 确认单次 completion 被服务端验证要求拒绝。已移除临时响应采集并清理私有诊断；保留正常失败截图文字诊断与停止重试流程。GitHub 已检索相关功能并在 docs/design.md 留存来源；未进行本地编译验证。
 - [1794377427] 本轮远端 Tests 42970252921 通过，13 项真实浏览器、HTTP、音频和打包测试均成功，包含“消息明确发送失败后只发送一次并停止剩余单词”回归；本地仅 AST 语法读取和 git diff --check，未编译或运行测试。
@@ -48,6 +49,8 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794378446] 用户改为询问 https://chat.deepseek.com/ 在香港 TUN 下能否访问；开始复用同一远端 Probe 检查网页、HTTP 状态与验证提示，使用独立空白浏览器目录，不切换制卡入口、不提交账号密码、不重复豆包请求。
+- [1794378392] TUN 改动的远端 Tests 42972022866 首轮在第一个 Chrome 启动处报 BrowserConnectError（127.0.0.1:9222），其余 12 项通过；相同提交仅重跑 Tests 核对，不重跑真实豆包 Probe，不扩大改动。
 - [1794378162] 已按官方文档补充 Probe 专用 TUN 开关：sudo 启动 mihomo、gvisor 虚拟网卡、自动路由和 DNS 劫持；Chrome 使用 --no-proxy-server。先检查实际 TUN 网卡与无 HTTP 代理的香港出口，再恢复同一 profile 发送一次查询；GitHub 已检索官方配置与相关问题并记录 docs/design.md。
 - [1794377957] 用户恢复任务，明确要求在 GitHub Actions 开启 mihomo TUN 后再测试一次；沿用现有香港节点与豆包 profile，先核对官方 TUN 配置，再运行单次远端 Probe，不进行本地编译或测试。
 - [1794377367] 远端 Probe 42970258764 已确认四个香港候选可用、mihomo 与真实 Chrome 出口均 HK，已有 profile 登录检查通过，但发送出现失败图标；不是代理未生效。继续用同一个 Probe 记录单次 completion 的私有错误响应，区分账号验证、出口地区或旧会话影响；未重新发短信。
