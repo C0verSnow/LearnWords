@@ -61,6 +61,10 @@ class Doubao:
         editor.input(Keys.ENTER)
         if debug:
             print("[DEBUG-lw-20261110] after-enter-chars", len(editor.text), flush=True)
+            for control in tab.eles('css:[data-testid*="send"], [data-testid*="stop"]', timeout=0):
+                print("[DEBUG-lw-20261110] send-control", control.tag,
+                      control.attr("data-testid"), "visible", control.states.is_displayed,
+                      "enabled", control.states.is_enabled, flush=True)
         deadline = time.monotonic() + self.config["timeout"]
         stable_since, last = time.monotonic(), ""
         parse_error = "not-attempted"
@@ -78,11 +82,15 @@ class Doubao:
                     parse_error = str(error)
             time.sleep(1)
         if debug:
+            body_text = tab.ele("tag:body").text
             print("[DEBUG-lw-20261110] timeout-state", "answers", len(answers),
                   "answer-chars", [len(element.text) for element in answers],
                   "editor-chars", len(editor.text), "busy", bool(busy),
                   "busy-visible", busy.states.is_displayed if busy else False,
                   "parse-error", parse_error, flush=True)
+            print("[DEBUG-lw-20261110] page-signals",
+                  {term: term in body_text for term in ("验证码", "访问受限", "发送失败", "网络异常", "重新登录")},
+                  flush=True)
         raise TimeoutError("豆包未在时限内返回完整内容")
 
     def check_login(self):
