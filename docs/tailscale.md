@@ -6,7 +6,7 @@ GitHub-hosted Ubuntu 24.04 Runner 执行 Python、Xvfb、有头 Chromium 和 Dri
 
 当前服务器为 `192.168.1.245`，Tailscale IPv4 为 `100.124.220.89`。这两个地址用途不同，Runner 使用后者。服务器处于 NAT 后不影响方案，Tailscale 可直连或经 DERP 中继；没有承诺带宽与延迟。
 
-OpenWrt `192.168.1.1` 已有 OpenClash。服务器原先访问 Cloudflare 的出口为日本，按服务器 Wi-Fi MAC 加入 OpenClash 自带绕过列表后，同一查询返回 CN。此项同时排除该设备的 DNS 劫持，其余设备继续沿用原分流。OpenWrt 不安装 Tailscale，原因见 [评估](tailscale-openwrt-assessment.md)。
+OpenWrt `192.168.1.1` 已有 OpenClash。2026-11-11 按用户要求取消服务器 Wi-Fi MAC 的整机绕过，恢复正常规则分流；只对来源 `192.168.1.245` 的豆包清单域名和 `www.cloudflare.com` 出口检查优先直连。目标域名返回真实 DNS 地址，并开启域名嗅探以识别 Runner 发来的真实 IP 连接。服务器访问 Google、YouTube 仍走原有代理规则；远端 network Probe 已确认 Tailscale 目标路径为 CN。配置位置、备份与验收见 [245 分流记录](openclash-245-split.md)。OpenWrt 不安装 Tailscale，原因见 [评估](tailscale-openwrt-assessment.md)。
 
 ## 从零部署
 
