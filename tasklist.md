@@ -6,6 +6,18 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794447339] 245 路由器分流修改完成：已取消整机 MAC 绕过，来源 245 的豆包及出口检查优先直连，其余继续原代理规则；清旧 DNS 缓存后 Google 204、YouTube/豆包 200，连接记录确认 DIRECT 与代理分开。已有远端 network Probe 43135116122 全部通过，目标出口 CN、豆包无区域限制、退出清理成功；未复测登录或制卡。路由器源配置已与用户 myenv/config.yaml 解析后一致，无需重复替换；245 未启动第二套 Mihomo。备份 /root/learnwords-split-backup-1794447016，说明见 docs/openclash-245-split.md。已检索 GitHub OpenClash/Mihomo 官方实现与相关问题；无本地编译验证。
+- [1794447183] 245 清理切换前的 systemd-resolved DNS 缓存后，Google 204、YouTube 200、豆包 200；此前 Google 解析到错误地址，未为此新增规则。OpenClash 实际连接确认豆包/指定 Cloudflare 检查命中来源 245 的 AND 直连规则，Google 命中 google_domain 并走代理。已启动现有远端 network Probe 43135116122，验证 Tailscale 完整链路。
+- [1794447116] 路由器已取消 245 MAC 整机绕过，15 条仅限来源 245 的优先直连规则及目标 DNS 真实地址设置已生效；OpenClash 已成功重启。245 实测豆包 HTTP 200、www.cloudflare.com 为 CN、cloudflare.com 为 JP，Tailscale 在线且无健康告警。Google 首次 HTTPS 超时，继续查连接；准备已有远端 network Probe 验证完整链路，不扩大修改其他设备。
+- [1794447017] 已备份路由器配置至 /root/learnwords-split-backup-1794447016。沿用 OpenClash 官方自定义规则、域名嗅探与现有持久覆写脚本，为来源 245 的豆包域名和 Cloudflare 验证域名优先直连，并保留真实 DNS；接着取消 245 MAC 整机绕过、重启并实测。
+- [1794446835] 用户授权检查并按需修改 OpenClash，让 245 恢复按规则分流，同时保留 LearnWords 豆包大陆出口。开始读取路由器原配置、源规则与运行规则，先备份再改，不输出凭据，不进行本地编译验证。
+- [1794446646] 用户明确选择本次只评估、不修改远端。已确认 Tailscale 在线并提供大陆出口；Mihomo 服务停用，服务指定程序 /usr/local/bin/mihomo 已不存在，最后停止记录早于 LearnWords 本次调整。新旧配置的 TUN 都开启自动路由，正在整理共存边界和恢复建议。
+- [1794446466] 开始只读评估 192.168.1.245 的 Tailscale 与 Mihomo 共存情况，核对上次网络调整和 myenv/config.yaml；先不改远端服务，不输出订阅或密钥，不进行本地编译。
+
+- [1794446111] issue #4 补记：仅文档改动后的 Tests 43132926708 首次运行有 1 项原有浏览器恢复/查询测试超时，位置 tests/test_browser.py:169；新增词表测试、短语音频打包和其余 15 项均通过。此前同一功能代码的 Tests 43132675432 全部通过。本次不改浏览器模块，将用原有远端 Tests 复核，结果放到 PR #5，保留失败记录。
+- [1794445967] issue #4 完成：PR #5 已提交等待用户 review，没有合并；issue #4 已按原文要求关闭。源代码 1161ffc 的远端 Tests 43132675432 全部 16 项通过，含新词表完整性、CSV 导入、短语双口音音频和 APKG/ZIP。README、词表来源说明与更新命令已补齐；已在 GitHub 检索核对指定来源，未复制实现代码。只做本地数据生成、AST 语法读取与差异检查，没有本地编译或测试。
+- [1794445717] 开始 issue #4：在 feature/issue-4-ielts-vocabulary 替换五个示例词为用户指定雅思词表，核对来源、数量与格式，补充测试和文档后提 PR 等待 review，并按要求关闭 issue；不做本地编译或测试。
+- [1794445815] issue #4 已查清旧词表位于 docs/words/vocabulary.txt，仅 5 个示例；GitHub 指定 CSV 共 3632 行、3592 个去重词条和 9 个短语。固定来源提交 4bf8da4c12fca6a9508f99dd71d7157495173882，新增标准库 CSV 导入脚本并实际生成替换词表，扩展选词支持空格短语，保留已交付记录。来源仓库无许可证，仅按用户指定提取词条，不借用实现代码。正在补充远端回归。
 - [1794420246] 原生选区/Backspace 修复后的两轮远端 Tests 43073535651、43073544831 均全部 13 项通过；同一源代码 be55f35 的真实 Probe 43073545078 也成功，新 Runner 继续恢复真实登录并完成查询、加密归档保存和路由清理。GitHub 已检索并记录 Tailscale、dnsmasq/nft、DrissionPage、cryptography 等实现参考；未进行本地编译或测试。准备将 PR #3 标为可审阅，仍按原约定不自动合并 main。
 - [1794420091] 已下载真实 Release 逐项读取：ZIP 内 APKG 与独立 APKG 字节相同；SQLite 为 approach 的 1 条笔记/1 张卡片，UK/US 两段 WAV 各约 0.8 秒、22050 Hz，字段音频引用齐全。manifest 无失败或数量不足；Make cards 清理步骤成功，未见 Telegram 通知失败。Anki 导入依约留给用户另机验收，main 仍等 PR review。
 - [1794419992] 新 Runner 的 Probe 43068019860 恢复真实登录并在 39 秒收到完整单词内容；目标出口 183.24.92.161/CN、普通 Chrome 保持 Runner 出口，加密目录保存约 15 MB。Make cards 43070141744 成功制作 approach，Release 已发布 APKG、ZIP 和 manifest，正在逐项读包验收。
@@ -74,6 +86,12 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+
+
+
+
+
+
 - [1794419992] 远端 Tests 43068013679 重跑明确复现旧草稿未清空。核对固定 DrissionPage 源码后，改为 DOM Range 只选中富文本框内容，再由原生 Backspace 删除；修正测试页 Enter 回退分支为单独 /enter 场景，保留正常页 Enter 不提交契约。只做静态检查，随后用远端 CI 和真实 Probe 验证。
 - [1794417640] Probe 43065087057 的私有限流响应明确 is_limit=false、limit_time=0。新界面出现 role=button 的“新对话”，旧 create_conversation_button 消失；快照富文本框仅 1 个空换行，未找到发送按钮。固定 DP 源码确认 input 默认 clear=False 且仅 DOM.focus。把真实 Chrome 回归页改为 contenteditable，加入残留旧草稿提交断言，先跑远端旧实现；随后修正新控件等待与显式聚焦/清空。
 - [1794416849] 328fbb3 的远端 Tests 43063284636 通过；Probe 43063605311 网络/真实登录/15.9 MB 归档保存通过，发送前却未找到 send 按钮，RuntimeError 未进入旧的超时/登录异常快照分支，私有诊断仍是上一轮。现覆盖该异常，监听在恢复前启动且只采账号/主站/签名 POST，补充富文本框可见性和字数快照，先查看真实切换后页面。

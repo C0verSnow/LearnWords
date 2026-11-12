@@ -25,12 +25,12 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，Gi
 | `/release` | 仓库最新公开 Release |
 | `/help` | 帮助 |
 
-只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。默认每次最多 100 词，可通过 `MAX_CARDS` 调低。少于请求数量时按剩余数量处理，并报告缺额。单词支持英文字母、内部短横线或撇号；空行、无效行和重复行会被忽略。
+只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。默认每次最多 100 词，可通过 `MAX_CARDS` 调低。少于请求数量时按剩余数量处理，并报告缺额。词条支持英文字母、内部短横线、撇号或词间空格（例如 `carbon dioxide`）；空行、无效行和重复行会被忽略。
 
 ## 配置顺序
 
 1. 合并 PR 后，在 Actions 的 **Tests** 中确认远端测试通过。制卡工作流保留手动入口，没有每日定时器。
-2. 修改 `docs/words/vocabulary.txt`，一行一个单词。当前五个单词仅为起步样例。
+2. 默认词表在 `docs/words/vocabulary.txt`，已将原来的 5 个示例词替换为用户指定的 [雅思词表](https://github.com/LynnShaw/vocabulary_for_ielts/blob/4bf8da4c12fca6a9508f99dd71d7157495173882/word_list.csv)：3632 条记录按原顺序去重后为 3592 个词条，含 9 个短语。该文件由 `python -m scripts.import_vocabulary` 生成，不手改；来源、重新导入方式及已有交付记录的处理见 [词表说明](docs/words/README.md)。
 3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。当前选择器已在真实页面核对，网站改版后仍需重新检查。
 4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz.enc`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后加密保存 ini 和完整用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
 5. 配置下表的 Actions secrets/variables，手动执行 **Probe browser access and session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
@@ -110,6 +110,6 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 ## 验证
 
-按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表选词，并通过本地 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号。
+按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表导入、3592 词完整性和短语选词，并通过本地 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号。
 
 真实上线验收清单在 [会话实验](docs/session-research.md)。设计比较和开源来源见 [参考设计](docs/design.md)。

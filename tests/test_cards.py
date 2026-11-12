@@ -35,8 +35,8 @@ class CardTests(unittest.TestCase):
     def test_real_speech_apkg_guid_media_html_and_zip(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            card = {"Word": "approach", **dict.fromkeys(FIELDS, "<script> & 例句\n翻译"),
-                    **pronunciation("approach", root / "media")}
+            card = {"Word": "carbon dioxide", **dict.fromkeys(FIELDS, "<script> & 例句\n翻译"),
+                    **pronunciation("carbon dioxide", root / "media")}
             for accent in ("UK", "US"):
                 self.assertTrue(card[f"IPA_{accent}"])
                 with wave.open(card[f"Audio_{accent}"]) as sound:
@@ -50,7 +50,7 @@ class CardTests(unittest.TestCase):
                     build_package([card], apkg)
                 with zipfile.ZipFile(apkg) as package:
                     media = json.loads(package.read("media"))
-                    self.assertEqual(set(media.values()), {"learnword_approach_uk.wav", "learnword_approach_us.wav"})
+                    self.assertEqual(set(media.values()), {"learnword_carbon dioxide_uk.wav", "learnword_carbon dioxide_us.wav"})
                     for name in media:
                         self.assertGreater(len(package.read(name)), 44)
                     database = root / f"collection-{iteration}.anki2"
@@ -60,14 +60,14 @@ class CardTests(unittest.TestCase):
                     self.assertEqual(len(notes), 1)
                     guid, model_id, fields = notes[0]
                     self.assertEqual(model_id, MODEL_ID)
-                    self.assertIn("[sound:learnword_approach_us.wav]", fields)
+                    self.assertIn("[sound:learnword_carbon dioxide_us.wav]", fields)
                     self.assertIn("&lt;script&gt; &amp;", fields)
                     self.assertNotIn("<script>", fields)
                     if first_guid:
                         self.assertEqual(guid, first_guid)
                     first_guid = guid
             archive = root / "cards.zip"
-            manifest = {"requested": 20, "succeeded": ["approach"], "stage": "packaged"}
+            manifest = {"requested": 20, "succeeded": ["carbon dioxide"], "stage": "packaged"}
             build_archive(apkg, manifest, archive)
             with zipfile.ZipFile(archive) as package:
                 self.assertEqual(set(package.namelist()), {"LearnWord.apkg", "manifest.json", "README.txt"})
