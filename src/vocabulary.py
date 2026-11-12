@@ -1,7 +1,7 @@
 import random
 import re
 
-WORD = re.compile(r"[a-z]+(?:['-][a-z]+)*")
+WORD = re.compile(r"[a-z]+(?:[' -][a-z]+)*")
 
 
 def select_words(path, generated, count, mode):
