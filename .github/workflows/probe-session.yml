@@ -1,7 +1,13 @@
-name: Probe Doubao session
+name: Probe browser access and session
+run-name: probe-${{ inputs.target || 'session' }}-${{ github.run_id }}
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: Check network, inspect public domains, restore and query, or encrypt legacy profile
+        type: choice
+        options: [session, network, migrate, domains]
+        default: session
       session_mode:
         description: Session restore experiment (empty uses repository variable)
         required: false
@@ -14,15 +20,19 @@ concurrency:
   queue: max
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'none' }}
+      TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+      TS_EXPECTED_IPV4: ${{ vars.TS_EXPECTED_IPV4 }}
+      TS_EXPECTED_IPV6: ${{ vars.TS_EXPECTED_IPV6 }}
+      BROWSER_PROFILE_KEY: ${{ secrets.BROWSER_PROFILE_KEY }}
+      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'profile' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: doubao.json
+      SUPABASE_PROFILE_OBJECT: doubao-profile.tar.gz.enc
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,4 +41,25 @@ jobs:
       - run: |
           python -m pip install -r requirements-worker.txt
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
-      - run: python -m scripts.session probe
+      - name: Check virtual display for headed Chrome
+        run: command -v xvfb-run
+      - uses: ./.github/actions/tailscale-doubao
+        with:
+          client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          client-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          exit-node: ${{ vars.TS_EXIT_NODE }}
+      - name: Encrypt the legacy profile without opening Chrome
+        if: inputs.target == 'migrate'
+        run: python -m scripts.session migrate
+      - name: Inspect anonymous Doubao domains
+        if: inputs.target == 'domains'
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session domains
+      - name: Probe Doubao session
+        if: inputs.target == 'session'
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session probe
+      - name: Restore runner routing and remove private working files
+        if: always()
+        run: |
+          pkill -x chrome || true
+          python -m scripts.tailscale_split stop || true
+          rm -rf .session

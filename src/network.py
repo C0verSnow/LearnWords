@@ -1,0 +1,55 @@
+import ipaddress
+import json
+import os
+import subprocess
+
+from src.config import required_env
+
+TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+
+
+def verify_browser_exit(page):
+    page.get(TRACE_URL)
+    trace = parse_trace(page.ele("tag:body").text)
+    verify_runner_trace(trace)
+    print("Chrome 普通请求保持 Runner 原始出口；豆包域名由内核规则送入 Tailscale。", flush=True)
+
+
+def parse_trace(text):
+    return dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
+
+
+def verify_exit_trace(trace):
+    address = ipaddress.ip_address(trace.get("ip", ""))
+    expected = required_env("TS_EXPECTED_IPV4" if address.version == 4 else "TS_EXPECTED_IPV6")
+    if address != ipaddress.ip_address(expected):
+        raise RuntimeError("公网出口与大陆服务器不一致，停止访问豆包；请核对出口节点及服务器动态 IP")
+    if trace.get("loc") != "CN":
+        raise RuntimeError("出口地区未确认为 CN，停止访问豆包")
+
+
+def verify_runner_trace(trace):
+    address = ipaddress.ip_address(trace.get("ip", ""))
+    expected = required_env("RUNNER_PUBLIC_IPV4" if address.version == 4 else "RUNNER_PUBLIC_IPV6")
+    if address != ipaddress.ip_address(expected):
+        raise RuntimeError("非目标流量没有保持 Runner 原始出口，停止浏览器任务")
+
+
+def curl_trace(family, resolved_ipv4=None, large_request=False):
+    command = ["curl", f"-{family}", "--noproxy", "*", "--fail", "--silent",
+               "--show-error", "--connect-timeout", "10", "--max-time", "30",
+               "--retry", "2", "--retry-all-errors", "--retry-delay", "1"]
+    if resolved_ipv4:
+        command += ["--resolve", "www.cloudflare.com:443:" + resolved_ipv4]
+    if large_request:
+        command += ["--header", "X-LearnWords-Route-Probe: " + "a" * 8192]
+    result = subprocess.run(command + [TRACE_URL],
+                            capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"IPv{family} 出口检查失败（curl {result.returncode}）：{result.stderr.strip()}")
+    return parse_trace(result.stdout)
+
+
+def tailscale_status():
+    result = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)

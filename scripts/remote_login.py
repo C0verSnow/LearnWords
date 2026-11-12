@@ -1,4 +1,5 @@
 """Keep one remote login browser alive; exchange inputs through private storage."""
+import base64
 import json
 import os
 import re
@@ -10,31 +11,29 @@ import requests
 
 from src.config import load_config
 from src.doubao import Doubao
-from src.session import export_session, read_session, restore_session, save_profile
+from src.session import save_profile
+from src.network import verify_browser_exit
 
 
 def main():
     config = load_config()["doubao"]
-    directory = Path(".session/browser")
+    directory = Path(".session/doubao-browser")
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     browser = Doubao(config, profile=directory / "profile", ini_path=directory / "chrome.ini")
     try:
         page = browser.page
+        verify_browser_exit(page)
         page.get(config["url"])
-        page.ele('xpath://button[normalize-space(.)="登录"]', timeout=20).click()
-        phone_login = page.ele('text:手机号登录', timeout=10)
-        if phone_login:
-            phone_login.click()
+        if not page.ele(config["authenticated"], timeout=3):
+            page.ele('xpath://button[normalize-space(.)="登录"]', timeout=20).click()
+            phone_login = page.ele('text:手机号登录', timeout=10)
+            if phone_login:
+                phone_login.click()
         login_id = os.getenv("LOGIN_ID", "")
         if not login_id:
-            print("LOGIN_FORM " + json.dumps(snapshot(page), ensure_ascii=False), flush=True)
-            restore_session(page, read_session(), "web_storage")
-            browser.check_login()
-            print("[DEBUG-profile] Fresh JSON session restored before archive.", flush=True)
-            browser.close()
-            browser = None
-            os.environ["SUPABASE_PROFILE_OBJECT"] = "doubao-profile.tar.gz"
-            save_profile(directory)
+            state = snapshot(page)
+            print("LOGIN_FORM " + json.dumps({key: state[key] for key in ("fields", "controls")},
+                                              ensure_ascii=False), flush=True)
             return
         uuid.UUID(login_id)
         prefix = "login/" + login_id
@@ -43,15 +42,12 @@ def main():
         deadline = time.monotonic() + 900
         while time.monotonic() < deadline:
             if page.ele(config["authenticated"], timeout=0):
-                path = directory / "doubao.json"
-                export_session(page, path)
-                storage("POST", os.getenv("SUPABASE_SESSION_OBJECT", "doubao.json"),
-                        json.loads(path.read_text()))
+                state = snapshot(page)
                 # Chrome must flush its databases before the profile is archived.
                 browser.close()
                 browser = None
                 save_profile(directory)
-                storage("POST", prefix + "/status.json", {"phase": "saved"})
+                storage("POST", prefix + "/status.json", {"phase": "saved", **state})
                 print("Remote login completed; session saved privately.", flush=True)
                 return
             command = storage("GET", prefix + "/command.json")
@@ -60,59 +56,125 @@ def main():
                 continue
             storage("DELETE", prefix + "/command.json")
             action = command.get("action")
-            if action == "phone":
-                value = command.get("value", "")
-                if not isinstance(value, str) or not re.fullmatch(r"1[0-9]{10}", value):
-                    raise ValueError("Invalid phone input")
-                page.ele('css:input[placeholder="请输入手机号"]').input(value, clear=True)
-            elif action == "agree":
-                checkbox = page.ele('css:[role="checkbox"]')
-                if checkbox.attr("aria-checked") != "true":
-                    checkbox.click()
-            elif action == "click":
-                label = command.get("label")
-                if label not in ("下一步", "获取验证码", "发送验证码", "登录", "验证并登录"):
-                    raise ValueError("Unsupported login button")
-                page.ele('xpath://button[normalize-space(.)="' + label + '"]', timeout=10).click()
-            elif action == "code":
-                value = command.get("value", "")
-                if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4,8}", value):
-                    raise ValueError("Invalid verification code")
-                fields = [element for element in page.eles('tag:input', timeout=10)
-                          if element.states.is_displayed]
-                fields[0].input(value, clear=True)
-            elif action != "inspect":
-                raise ValueError("Unsupported login action")
-            time.sleep(2)
-            storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
-                                                       **snapshot(page)})
+            try:
+                target = control_target(page, command)
+                apply_command(target, config, command)
+                time.sleep(2)
+                storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
+                                                           "target": snapshot(target) if target is not page else None,
+                                                           **snapshot(page)})
+            except Exception as error:
+                storage("POST", prefix + "/status.json", {"phase": "waiting", "last_action": action,
+                                                           "last_error": type(error).__name__, **snapshot(page)})
         storage("POST", prefix + "/status.json", {"phase": "timeout"})
         raise TimeoutError("Remote login waiting window ended")
     except Exception as error:
         # Browser exceptions can include sensitive input arguments; report only their class.
         print("Remote login stopped: " + type(error).__name__, flush=True)
-        if isinstance(error, RuntimeError) and str(error).startswith("浏览器目录"):
-            print("[DEBUG-profile] " + str(error), flush=True)
         raise SystemExit(1) from None
     finally:
         if browser is not None:
             browser.close()
 
 
+def control_target(page, command):
+    tab_id = command.get("tab_id")
+    if tab_id is not None:
+        if not isinstance(tab_id, str) or not tab_id:
+            raise ValueError("Invalid tab identifier")
+        page = page.browser.get_tab(tab_id)
+    frame = command.get("frame")
+    if frame is not None:
+        if not isinstance(frame, str) or not frame:
+            raise ValueError("Invalid frame selector")
+        page = page.get_frame(frame)
+    return page
+
+
+def apply_command(page, config, command):
+    action = command.get("action")
+    if action == "credentials":
+        user, password = command.get("user"), command.get("password")
+        if not isinstance(user, str) or not user or not isinstance(password, str) or not password:
+            raise ValueError("Invalid credentials")
+        user_field = page.ele(config["login_user"])
+        fill_field(user_field, user)
+        password_field = page.ele(config["login_password"])
+        fill_field(password_field, password)
+        if user_field.value != user or password_field.value != password:
+            raise RuntimeError("Login fields did not match private input")
+        if command.get("submit") is True:
+            page.ele(config["login_submit"]).click()
+    elif action in ("click", "input", "account"):
+        selector = command.get("selector")
+        if not isinstance(selector, str) or not selector:
+            raise ValueError("Invalid selector")
+        element = page.ele(selector, timeout=10)
+        if action == "click":
+            element.click()
+        elif action == "account":
+            if not element or not element.states.is_displayed:
+                raise ValueError("Account control unavailable")
+            config["authenticated"] = selector
+        else:
+            value = command.get("value")
+            if not isinstance(value, str):
+                raise ValueError("Invalid input")
+            fill_field(element, value)
+    elif action == "point":
+        point = command.get("point")
+        if (not isinstance(point, list) or len(point) != 2
+                or any(not isinstance(value, int) or value < 0 for value in point)):
+            raise ValueError("Invalid page point")
+        page.actions.move_to(tuple(point)).click()
+    elif action == "navigate":
+        path = command.get("path")
+        if path not in ("/", "/chat/"):
+            raise ValueError("Unsupported Doubao path")
+        page.get("https://www.doubao.com" + path)
+    elif action != "inspect":
+        raise ValueError("Unsupported login action")
+
+
 def snapshot(page):
     fields = [{"type": element.attr("type"), "placeholder": element.attr("placeholder"),
-               "value_length": len(element.value or "")}
+               "class": element.attr("class"), "parent_class": element.parent().attr("class"),
+               "parent_text": redact_phone(element.parent().text), "value_length": len(element.value or "")}
               for element in page.eles('tag:input', timeout=0) if element.states.is_displayed]
-    buttons = [element.text for element in page.eles('tag:button', timeout=0)
-               if element.states.is_displayed]
-    agreements = [{"checked": element.attr("aria-checked"), "text": element.parent().text}
-                  for element in page.eles('css:[role="checkbox"]', timeout=0)
-                  if element.states.is_displayed]
-    body = page.ele("tag:body").text
-    signals = {term: term in body for term in ("重新获取", "验证码已发送", "验证码错误", "验证失败",
-                                              "操作频繁", "拖动", "滑块", "安全验证")}
-    return {"fields": fields, "buttons": buttons, "agreements": agreements, "signals": signals,
-            "notice": re.sub(r"1[0-9]{10}", "[phone]", body)}
+    controls = [{"tag": element.tag, "class": element.attr("class"), "role": element.attr("role"),
+                 "id": element.attr("id"), "testid": element.attr("data-testid"),
+                 "checked": element.attr("aria-checked"), "text": redact_phone(element.text)[:200]}
+                for element in page.eles('css:button,[role],a,[tabindex],.ds-button,.ds-checkbox,[class*="select"]', timeout=0)
+                if element.states.is_displayed][:150]
+    editors = page.run_js("""
+        return [...document.querySelectorAll('[contenteditable="true"]')].map(e => ({
+          tag:e.tagName, class:e.className, role:e.getAttribute('role'),
+          testid:e.getAttribute('data-testid'), textLength:e.innerText.length,
+          focused:e===document.activeElement, visible:!!e.getClientRects().length}));
+    """)
+    body = redact_phone(page.ele("tag:body").text)
+    signals = {term: term in body for term in ("验证码", "验证失败", "操作频繁", "拖动", "滑块", "安全验证")}
+    frames = [{"id": frame.attr("id"), "name": frame.attr("name"), "title": frame.attr("title"),
+               "src": (frame.attr("src") or "").split("?")[0], "style": frame.attr("style"),
+               "displayed": frame.states.is_displayed}
+              for frame in page.get_frames(timeout=0)]
+    tabs = [{"id": tab.tab_id, "url": tab.url.split("?")[0], "title": tab.title}
+            for tab in page.browser.get_tabs()]
+    return {"url": page.url.split("?")[0], "fields": fields, "editors": editors, "controls": controls, "signals": signals,
+            "frames": frames, "tabs": tabs,
+            "notice": body, "screenshot": base64.b64encode(page.get_screenshot(as_bytes="png")).decode()}
+
+
+def fill_field(element, value):
+    from DrissionPage.common import Keys
+
+    element.run_js("this.focus(); this.select();")
+    element.owner.actions.type(Keys.BACKSPACE)
+    element.input(value)
+
+
+def redact_phone(text):
+    return re.sub(r"1[0-9]{10}", "[phone]", text)
 
 
 def storage(method, key, data=None):

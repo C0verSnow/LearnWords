@@ -1,56 +1,66 @@
-# 豆包登录恢复实验
+# 当前：豆包与大陆 Tailscale 出口
 
-## 已确认的 API，尚未确认的线上结论
+用户选择继续使用 192.168.1.245 提供出口，GitHub-hosted Runner 继续承担浏览器和制卡。现有 DeepSeek、香港 mihomo 的内容均为历史实验，不是当前运行方式。
 
-已阅读 DrissionPage 4.1.1.4 发布包源码：`cookies(all_domains=True, all_info=True)` 调用 CDP Storage.getCookies，返回完整 Cookie 字段；默认读取只保留 name/value/domain。它不会自动包含 Local Storage、Session Storage、IndexedDB、Chrome 用户目录、操作系统密钥或服务端风控信息。
+当前代码使用 Xvfb + 有头 Chrome、`configs/dp.ini`、固定的完整用户目录，并将 ini 与用户目录一起加密保存到私有 Supabase 对象 `doubao-profile.tar.gz.enc`。首次用 Probe 的 `migrate` 入口读取旧 `doubao-profile.tar.gz` 并加密回读核对，然后在新 Runner 用 `session` 入口验证登录和一次真实查询。正式工作流关闭 Chrome 后保存更新；登录未确认时不覆盖归档。
 
-`local_storage()` 与 `session_storage()` 分别读取当前源的网页存储，`set_user_data_path()` 指向 Chrome 用户数据目录。三者是不同的状态，不应统称为 Cookie。Session Storage 按标签页隔离，因此生产代码在同一标签页新建聊天，保留可能需要的网页状态。
+服务器原本被上游 OpenClash 分流至日本；按其 MAC 绕过并排除 DNS 劫持后，同一服务器 Cloudflare trace 已返回 CN。当前已改为域名分流：豆包目标的 TUN 路径须与服务器出口一致，Runner 和 Chrome 的普通请求须保持 Runner 原出口。部署、重新登录和故障处理步骤见 [Tailscale 指南](tailscale.md)；实际结果带 Unix Timestamp 记录在 tasklist.md。
 
-初次交付时没有真实账号或已部署服务，因此没有把 JSON 会话方案当作已经定型。下面记录后续账号配置与实验进度；本机网页已登录不等于 Ubuntu Runner 可以恢复登录。
+以下是此前实验记录。
 
-## 2026-11-10 真实页面检查
+---
 
-- 已在用户登录的 Chrome 中查询 `approach`，网页返回包含七个所需字段的完整 JSON。
-- 通过 Chrome Elements 面板核对，输入框现在是 `chat_input_input` 内的 `contenteditable` 节点，登录头像位于 `data-sidebar-footer-account-menu` 内的 `chat_header_avatar_button`；已修正 `config.yaml`。新对话和回答节点的配置仍能对应真实页面。
-- 通过 Chrome Application 面板读取了当前豆包源的 29 个 Cookie、33 项 Local Storage 和 1 项 Session Storage，保存为被忽略的 `.session/doubao.json`。这种导出没有包含 IndexedDB 或整个 Chrome 用户目录。
-- 已上传至 LearnWords 独立 Supabase 项目的私有 `browser-sessions/doubao.json` 并回读核对。跨 Ubuntu Runner 的恢复和真实查询仍待远端 Probe 验证。
+# 当前：DeepSeek 香港 TUN 登录迁移
 
-浏览器操作依据：[Chrome Cookie 面板](https://developer.chrome.com/docs/devtools/application/cookies)。没有读取其他站点的会话，没有把 Cookie 或网页存储写入 Git。
+用户已明确改用 DeepSeek，并要求有窗口模式、关闭浏览器沙箱、中国大陆 +86 地区。代码位于 feature/deepseek-tun，main 尚未更改；.env 与 Infisical 的会话对象已改为 deepseek.json / deepseek-profile.tar.gz，SESSION_MODE=profile、MIHOMO_TUN=1。豆包对象保留。
 
-## 待执行步骤
+普通窗口 Login 42979256202 已推进到账号安全验证页，页面明确显示 +86，要求短信验证码。发送按钮已点击一次，正在等待站点安全验证加载，尚未确认短信发送成功；保持同一个远端浏览器，不重复发短信。DeepSeek 登录尚未完成，正式会话、跨 Runner 查询、ZIP 和 Telegram 制卡尚未验收。
 
-以下命令给人工配置者使用；本次开发没有执行本地安装、浏览器登录或编译验证。Python 依赖为 `requirements-worker.txt`，Chrome 需要使用独立用户目录。
+所有浏览器工作流使用 Xvfb 虚拟屏幕启动普通 Chrome，headless=False、--no-sandbox，不使用额外容器。13 项远端有窗口 Tests 42979249856 全部通过。之前重复填表追加旧值的错误已有同一真实 Chrome 回归先红后绿。本地仅静态检查，没有编译或测试。官方来源和设计比较见 [设计文档](design.md)。
 
-1. 复制 `.env.example` 到 `.env`。在真实页面检查 `config.yaml` 的账户按钮、新建聊天、输入框、回答和生成中选择器。`authenticated` 必须仅在已经登录时出现，不能使用公共输入框替代身份判断。
-2. `python -m scripts.session capture --profile .session/profile`：人工登录，确认能够正常查询后按回车，导出 Cookie 与当前源网页存储至 `.session/doubao.json`。脚本不输出内容，不保存截图，目录不会提交。
-3. 关闭原浏览器。在 `.env` 设 `SESSION_MODE=cookies`，执行 `python -m scripts.session probe`，使用全新用户目录测试登录和真实消息提交。记录成功或失败，不仅看是否出现输入框。
-4. 改为 `SESSION_MODE=web_storage`，再以全新目录执行 probe。比较 Cookie 单独恢复与 Cookie 加两类网页存储的结果。
-5. 以 `SESSION_MODE=none` 执行 `python -m scripts.session probe --profile .session/profile`，比较原用户目录重启的结果。此项仅验证同机器目录；不能由此推断 macOS 用户目录能直接搬到 Linux。
-6. 若 JSON 恢复可行，将文件上传 Supabase **私有** bucket，配置 Runner secrets 与 SESSION_MODE，在 Actions 手动运行 **Probe Doubao session**，验证全新 Ubuntu 环境中的同一条查询。Supabase 只读取经过实验选择的对象，不建立业务表。
-7. 连续使用至少两个新的 Runner，间隔一段时间后重复；记录平均响应耗时、登录是否过期、能否发送新聊天、豆包是否限制访问。遇到验证码或人工校验停止并人工处理。
-8. 若只有原用户目录有效，或云 Runner 被拒绝，记录阻碍后另行决定是否需要保存其他状态。当前不实现未经验证的 Chrome 目录跨系统迁移，不声称无人值守已达成。
+英文登录页没有单独地区下拉或条款复选框，条款为登录即同意；实际账号安全验证页已确认 +86。真实凭据只从 Infisical 经私有一次性指令填写，未写入仓库或公开工作流输入。
 
-| 实验 | 登录 | 查询 | 耗时 | 结论 |
-| --- | --- | --- | --- | --- |
-| 全新进程 + Cookie | 待测 | 待测 | 待测 | 未确认 |
-| 全新进程 + Cookie/Local/Session Storage | 待测 | 待测 | 待测 | 未确认 |
-| 同机原用户目录重启 | 待测 | 待测 | 待测 | 未确认 |
-| Ubuntu Runner 恢复 | 待测 | 待测 | 待测 | 未确认 |
-| 第二个新 Runner + 间隔后重试 | 待测 | 待测 | 待测 | 未确认 |
+以下保留此前豆包与 DeepSeek 网页访问对照历史。
 
-## 上线验收
+# 豆包香港出口与远端验收
 
-- Telegram `/make 1` 只创建一个任务，重复的 update_id 不重复排队；无效参数和未授权用户不触发任务。
-- Ubuntu Runner 可恢复真实登录，独立聊天返回完整解释；逐词校验，多词失败不丢其他已完成内容。
-- 导入真实 APKG：英美 IPA、全部解释字段和音频存在；正面按客户端设置自动播放，离线可用。
-- 相同单词的更新卡包在目标 Anki 客户端按导入设置更新，不造成不必要的重复。
-- `/make 5 random` 发布 APKG/ZIP/manifest，结果数量与 Telegram 一致；失败任务原号重跑可恢复。
-- 发布失败没有新增 generated 记录，已公开 Release 的 Telegram 通知失败不会撤销成果。
+按用户要求从 DeepSeek 回退到 https://www.doubao.com/chat/，继续使用 GitHub Actions。已有私有 `doubao.json` 和 `doubao-profile.tar.gz` 均存在；此前 profile 在新 Runner 恢复过登录，但消息发送被拒绝。香港节点是否可正常登录和查询，以本轮真实 Probe 结果为准。
 
-实验结果请继续带 Unix Timestamp 记录到 `tasklist.md`。不要将会话 JSON、用户目录、真实登录日志或密钥提交到公开仓库。
+## 运行顺序
 
-## 远端手机号登录
+1. `.env` 使用标准 `MIHOMO_SUBSCRIPTION_URL=...`；`.env.example` 仅保留空值示例。订阅同时保存在 Infisical LearnWords/dev，以及既有私有 Supabase bucket 的 `proxy/subscription.json`（`url` 字段），不进入 Git、Actions 输入、artifact 或 Release。
+2. Login、Probe、Make cards 安装已有 Python 依赖后运行 `python -m scripts.mihomo`。下载固定版本 mihomo 并校验 SHA-256；只从订阅挑选香港节点，生成配置保存在被忽略的 `.session/mihomo/`。
+3. mihomo 仅监听 Runner 回环地址，通过代理访问 Cloudflare trace，实际国家为 HK 才继续；失败不退回直连或其他地区。通过 `GITHUB_ENV` 设置 `BROWSER_PROXY`，DrissionPage 启动 Chrome 时显式设置代理，Supabase、GitHub 和 Telegram 仍按既有网络直连。
+4. **Probe Doubao session** 还会在真实 Chrome 内核对 HK 出口，再恢复 ini 与 profile，查询 approach 并解析完整内容。必须恢复登录和真实查询均通过，才能继续制卡。
+5. 两个新 Runner 分别通过 Probe 后，运行 **Make cards** 制作一个词，检查公开 Release 的 ZIP、APKG、manifest 与 ZIP 中媒体，再通过 Telegram 验收完整请求链路。Anki 导入和客户端自动播放由用户另机验收。
+6. 仅在已有会话失效时，运行 **Login Doubao session** 并通过私有一次性指令登录。同一浏览器等待人工验证码，成功后导出 JSON、关闭 Chrome、再保存 ini 与用户目录，不反复发短信。
 
-使用仓库现有 GitHub Actions Runner 打开全新 Chrome，通过 DrissionPage 官方 [ini 配置接口](https://www.drissionpage.cn/advance/ini/)保存并加载 `.session/remote-login.ini`。ini 只保存启动参数，登录会话仍单独导出到私有 Supabase 对象；不把手机号或验证码放进工作流输入、代码或日志。此前 Cookie 与 web_storage 的跨 Runner 探测均出现实际登录页，需按用户要求在远端重新登录后再验证。
+## 验收状态
 
-本次远端手机号实验已成功请求短信，并读到验证码页。实际验证码输入框没有 placeholder，按可见 input 定位后成功提交，但服务器返回“错误次数过多或验证码过期，请稍后重试”。本次没有取得新登录会话，没有覆盖正式会话文件，仍不能声称跨 Runner 恢复或制卡验收通过。
+| 项目 | 结果 |
+| --- | --- |
+| 订阅规范化与私有保存 | 已完成 |
+| 已有豆包 JSON 和 profile 对象 | 已确认存在，不代表当前会话仍有效 |
+| mihomo 香港真实出口 | 两次独立 Runner 均确认 HK（42970258764、42970493648） |
+| Chrome 香港真实出口 | 两次独立 Runner 均确认 HK |
+| 两个新 Runner 恢复并查询完整内容 | 登录恢复均通过；发送均失败，后一次只发送 1 次，HTTP 200 内 STREAM_ERROR 710022004 / rate limited，服务端要求 semantic_reasoning 验证 |
+| Release ZIP 与 Telegram 结果 | 待测 |
+| Anki 客户端导入与发音 | 用户另机验收 |
+
+不搬用 macOS 的 Chrome 目录，不把 ini 单独当作凭据。归档保留 Cookie、Local Storage、IndexedDB 等，排除普通缓存与锁/socket。DeepSeek 对象与账号配置不删除，本轮不再使用。
+
+所有实际进度带 Unix Timestamp 记录到 tasklist.md。按仓库约定不运行本地编译、构建或测试；验证使用已有远端 Tests 和 Probe 工作流。
+
+本轮远端 Tests 42970252921 的 13 项测试通过；清理临时采集后的最终 [Tests 42971075743](https://github.com/C0verSnow/LearnWords/actions/runs/42971075743) 也已通过。真实账户仍需人工处理豆包验证后重新 Probe；验证未通过前，尚无可验收的 Release ZIP，也不继续重复查询或发短信。临时 completion 响应采集已移除，私有诊断已清理。
+
+## TUN 对照（用户恢复后）
+
+Probe 已改为 MIHOMO_TUN=1，开启虚拟网卡、自动路由及 DNS 劫持；Chrome 不使用单独 HTTP 代理。沿用相同香港候选顺序和 profile，只进行一次真实查询。具体结果见 tasklist.md。其余 Login、Make cards 工作流仍维持原代理方式。
+
+本次 [TUN Probe 42972029205](https://github.com/C0verSnow/LearnWords/actions/runs/42972029205) 已完成：TUN 开关、虚拟网卡、无 HTTP 代理的 HK 出口、Chrome HK 出口和 profile 登录检查均通过。只发出一次 completion，HTTP 200 内仍返回 STREAM_ERROR、710022004、rate limited，且要求 semantic_reasoning 验证。TUN 已在工作流收尾阶段停止。本次结果说明开启 TUN 没有解决当前账户的发送拒绝；仍需处理服务端验证，不继续重复发消息或短信。
+
+## DeepSeek 网页访问对照
+
+用户随后指定检查 https://chat.deepseek.com/。在同一 Probe 工作流选择 target=deepseek，复用相同香港 TUN 设置；用全新独立 Chrome 目录依次读取根页面和 /sign_in，记录主文档 HTTP 状态、密码框/聊天框以及 CloudFront/浏览器验证提示。此检查仅访问页面，不读取或提交 DeepSeek 账号密码，不改变豆包制卡入口。页面诊断只保存到现有私有 bucket。
+
+[DeepSeek 访问检查 42972760085](https://github.com/C0verSnow/LearnWords/actions/runs/42972760085) 实测结果：香港 TUN 与 Chrome 出口均通过 HK 检查。首页 `/` 返回 CloudFront 403；`/sign_in` 主文档返回 200，标题为 DeepSeek - Into the Unknown，密码输入框可见，没有检测到浏览器挑战页。账号登录和对话仍未测试，不能将登录页可打开记为登录成功。TUN 对照代码的远端 Tests 42972022866 第 2 次运行已通过，首次失败在 Chrome 连接阶段；未为此增加代码或本地测试。

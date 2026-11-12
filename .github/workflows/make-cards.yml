@@ -30,20 +30,24 @@ concurrency:
 
 jobs:
   make:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     env:
+      TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
+      TS_EXPECTED_IPV4: ${{ vars.TS_EXPECTED_IPV4 }}
+      TS_EXPECTED_IPV6: ${{ vars.TS_EXPECTED_IPV6 }}
+      BROWSER_PROFILE_KEY: ${{ secrets.BROWSER_PROFILE_KEY }}
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_REF: ${{ github.ref_name }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      SESSION_MODE: ${{ vars.SESSION_MODE || 'none' }}
+      SESSION_MODE: ${{ vars.SESSION_MODE || 'profile' }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: ${{ vars.SUPABASE_SESSION_OBJECT || 'doubao.json' }}
-      SUPABASE_PROFILE_OBJECT: ${{ vars.SUPABASE_PROFILE_OBJECT || 'doubao-profile.tar.gz' }}
+      SUPABASE_SESSION_OBJECT: doubao.json
+      SUPABASE_PROFILE_OBJECT: doubao-profile.tar.gz.enc
       MAX_CARDS: ${{ vars.MAX_CARDS || '100' }}
     steps:
       - uses: actions/checkout@v4
@@ -56,19 +60,31 @@ jobs:
           cache: pip
       - name: Install Chrome, speech engine and Python dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y espeak-ng
+          bash scripts/install_runner_packages.sh espeak-ng
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
           python -m pip install -r requirements-worker.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Check virtual display for headed Chrome
+        run: command -v xvfb-run
+      - uses: ./.github/actions/tailscale-doubao
+        with:
+          client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          client-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          exit-node: ${{ vars.TS_EXIT_NODE }}
       - name: Generate, checkpoint, publish and notify
         env:
           COUNT: ${{ inputs.count }}
           MODE: ${{ inputs.mode }}
           REQUEST_ID: ${{ inputs.request_id || format('run-{0}', github.run_id) }}
           CHAT_ID: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
-        run: python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
+        run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
+      - name: Restore runner routing and remove private working files
+        if: always()
+        run: |
+          pkill -x chrome || true
+          python -m scripts.tailscale_split stop || true
+          rm -rf .session
       - name: Preserve products and recovery data even on failure
         if: always()
         uses: actions/upload-artifact@v4

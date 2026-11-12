@@ -1,0 +1,38 @@
+name: Doubao Tailscale split routing
+description: Route Doubao domains through the mainland TUN and keep other traffic on the runner
+inputs:
+  client-id:
+    required: true
+    description: LearnWords OAuth client ID
+  client-secret:
+    required: true
+    description: LearnWords OAuth client secret
+  exit-node:
+    required: true
+    description: Mainland server Tailscale IPv4
+runs:
+  using: composite
+  steps:
+    - name: Install domain routing dependencies
+      shell: bash
+      run: bash scripts/install_runner_packages.sh dnsmasq-base nftables
+    - name: Record the original runner network
+      shell: bash
+      run: python -m scripts.tailscale_split baseline
+    - uses: tailscale/github-action@v4
+      with:
+        oauth-client-id: ${{ inputs.client-id }}
+        oauth-secret: ${{ inputs.client-secret }}
+        tags: tag:learnwords-ci
+        version: '1.104.5'
+        hostname: learnwords-${{ github.run_id }}-${{ github.run_attempt }}
+        tailscaled-args: --tun=tailscale0
+        args: --accept-dns=false
+        ping: ${{ inputs.exit-node }}
+        log-mode: quiet
+    - name: Install runner-only domain rules
+      shell: bash
+      run: python -m scripts.tailscale_split start
+    - name: Verify target and default egress
+      shell: bash
+      run: python -m scripts.check_network

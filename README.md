@@ -11,7 +11,9 @@ Telegram /make 20 random
 
 ## 当前交付边界
 
-Telegram、Vercel Webhook 和私有 Supabase 已完成配置，真实 `/make 1` 能受理并启动 Actions，也能返回失败原因。豆包远端短信登录曾成功，但 Cookie 和网页存储在新 Runner 中未稳定恢复，实际页面提示地区限制；正在验证 ini 加完整用户目录方案，尚未发布首个卡包。用户将在另一台电脑验收 Anki 导入，本轮交付目标为 Release 提供 ZIP。详见 [会话实验](docs/session-research.md)。
+Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，GitHub-hosted Ubuntu Runner 使用 Tailscale 内核 TUN，仅让豆包目标地址经大陆服务器 192.168.1.245 出口，其余保持 Runner 原出口；Chrome 使用 Xvfb 有头模式，不设置浏览器代理。完整用户目录和 ini 关闭后加密保存到私有 Supabase。已在多个新 Runner 恢复登录并完成真实查询，[首个卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-tun-1794418718)已发布，含 approach 卡片与英美合成音频。详细证据见 [验收记录](docs/tailscale.md#实际验收记录2026-11-11)；Anki 客户端由用户另机验收。当前功能分支仍待 PR review，合并前 Telegram 生产入口保持 main 原有代码。
+
+从零配置、故障排查与分流边界见 [Tailscale 部署指南](docs/tailscale.md)。OpenWrt 评估见 [评估记录](docs/tailscale-openwrt-assessment.md)，本次选择继续使用独立服务器。
 
 ## 指令
 
@@ -29,15 +31,17 @@ Telegram、Vercel Webhook 和私有 Supabase 已完成配置，真实 `/make 1` 
 
 1. 合并 PR 后，在 Actions 的 **Tests** 中确认远端测试通过。制卡工作流保留手动入口，没有每日定时器。
 2. 修改 `docs/words/vocabulary.txt`，一行一个单词。当前五个单词仅为起步样例。
-3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。样例中的 `data-testid` 是待核对的配置，不是已经验证的线上页面契约。
-4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后保存 ini 和独立用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
-5. 配置下表的 Actions secrets/variables，手动执行 **Probe Doubao session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
+3. 按 [会话实验](docs/session-research.md) 人工登录并测试新的浏览器进程；根据真实页面更新 `config.yaml` 的选择器。当前选择器已在真实页面核对，网站改版后仍需重新检查。
+4. 在 Supabase 建立私有 Storage bucket `browser-sessions`。JSON 模式使用 `doubao.json`；`profile` 模式使用 `doubao-profile.tar.gz.enc`，由远端 **Login Doubao session** 登录成功并关闭 Chrome 后加密保存 ini 和完整用户目录。不用建业务表；不能只上传 ini，或直接搬用 macOS 的 Chrome 目录。
+5. 配置下表的 Actions secrets/variables，手动执行 **Probe browser access and session**。确认 Ubuntu Runner 可以恢复登录并发出查询后，先手动运行 **Make cards**，数量填 `1`。
 6. 导入生成的 APKG，检查字段、英美发音和自动播放。确认后再部署 Webhook。
 7. 用 BotFather 创建 Telegram Bot；在 Vercel 导入本仓库，Framework 选 Other，根目录为仓库根目录，不设置前端构建命令。入口为 `api/telegram.py`，使用 Python 3.12。
 8. 配置 Vercel 环境变量并重新部署；将 Telegram Webhook 注册为 `https://你的域名/api/telegram`，`secret_token` 与 `TELEGRAM_WEBHOOK_SECRET` 一致，`allowed_updates` 只含 `message`。可用 `python -m scripts.webhook https://你的域名/api/telegram` 读取 `.env` 完成注册，脚本不会打印 token。
 9. 私聊发送 `/make 1`，确认受理、Actions、Release 和最终通知，再测试 `/make 5 random`、无效数量和重复更新。
 
 ### 环境变量
+
+Actions 还需 `TS_OAUTH_CLIENT_ID`、`TS_OAUTH_SECRET`、`BROWSER_PROFILE_KEY` 三项 Secret，以及 `TS_EXIT_NODE`、`TS_EXPECTED_IPV4`、可选的 `TS_EXPECTED_IPV6` 三项 Variable，配置方法见 [部署指南](docs/tailscale.md)。
 
 仓库 `.env.example` 可复制为 `.env`；代码优先读取当前仓库 `.env`，已存在的环境变量优先，不要提交真实会话或密钥。
 
@@ -51,12 +55,12 @@ Telegram、Vercel Webhook 和私有 Supabase 已完成配置，真实 `/make 1` 
 | `GITHUB_REF` | `main` | 自动使用工作流分支 | Webhook 触发的分支；必须已有工作流 |
 | `MAX_CARDS` | 可选，默认 100 | Variable，默认 100 | 两端保持一致，范围 1–100 |
 | `TELEGRAM_CHAT_ID` | 不需要 | Secret，可选 | 手动触发时的通知聊天；Telegram 触发自动传入 |
-| `SESSION_MODE` | 不需要 | Variable，默认 none | 实验确认后选择 cookies、web_storage 或 profile |
+| `SESSION_MODE` | 不需要 | Variable，默认 profile | 生产使用 profile；cookies/web_storage 仅为旧实验 |
 | `SUPABASE_URL` | 不需要 | Secret | 私有会话对象所在项目 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 不需要 | Secret | 仅 Runner 读写私有会话对象 |
 | `SUPABASE_SESSION_BUCKET` | 不需要 | Variable，可选 | 默认 browser-sessions |
-| `SUPABASE_SESSION_OBJECT` | 不需要 | Variable，可选 | 默认 doubao.json |
-| `SUPABASE_PROFILE_OBJECT` | 不需要 | Variable，可选 | 默认 doubao-profile.tar.gz，包含 ini 与浏览器用户目录 |
+| `SUPABASE_SESSION_OBJECT` | 不需要 | 工作流固定 | doubao.json，仅供旧 JSON 实验 |
+| `SUPABASE_PROFILE_OBJECT` | 不需要 | 工作流固定 | doubao-profile.tar.gz.enc，包含 ini 与完整浏览器用户目录 |
 | `CHROME_PATH` | 不需要 | 工作流自动发现 | Runner 自带 Chrome；本机实验可手动指定 |
 
 GitHub 必须允许 Actions 写 Contents；若分支保护阻止机器人提交 `docs/`，先为这个自动化选择允许写入的数据分支，并让 `GITHUB_REF` 与手动运行的分支一致。不要在有人工改动但未提交的目录运行制卡程序。
@@ -77,6 +81,14 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 先保存生成内容和打包检查点，再创建草稿 Release，全部资源上传后才转为公开，最后写成功记录。仅已发布的词会在新任务中被排除。Release 内的清单和 ZIP 清单记录**打包时**的 `packaged` 阶段；`docs/manifests/` 是后续发布结果的依据。
 
 工作流使用 `concurrency` 的 `queue: max` 串行写制卡记录，最多等待 100 个任务；超出平台队列上限的任务会被取消，可通过 `/status` 查看。Webhook 写入独立请求文件，Runner 推送前 rebase 保留这些请求。
+
+## 浏览器与网络
+
+源配置为 `configs/dp.ini`，运行时读取并保存 `.session/doubao-browser/chrome.ini`，完整 User Data 根目录是 `.session/doubao-browser/profile/`（包含 Local State、Default、Cookie、LocalStorage、IndexedDB 等）。沿用工作流串行队列，禁止同时打开同一目录。浏览器正常退出后保存加密归档，关闭 Chrome 后经 Runner 原出口上传加密归档；失败时清理工作目录并断开出口；登录未确认的目录不会覆盖正式归档。
+
+`--no-sandbox` 会关闭 Chrome 的浏览器沙箱，降低浏览器隔离强度；这里只用于隔离的一次性受信任 Runner，不在持有生产 Secrets 的不可信 PR 任务中运行。`--password-store=basic` 用于避免依赖不同 Runner 的 Linux 桌面密钥服务，目录在运行期间包含敏感数据，由归档加密保护存储；仍必须实际验证登录恢复，不能保证复制目录就有效。
+
+当前使用 DNS + nftables + Tailscale TUN 分流：`configs/doubao-domains.txt` 内域名及子域名走大陆 Exit Node，其余地址走 Runner 原出口。GitHub、依赖和 Supabase 在浏览器运行期间也保持原出口。共用 IP 的其他域名可能随目标走大陆，详见部署指南的规则与实测说明。
 
 ## 重试与恢复
 
