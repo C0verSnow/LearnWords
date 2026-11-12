@@ -10,7 +10,7 @@
     "oxide"
   ],
   "created_at": "2026-11-12T01:43:05.473179+00:00",
-  "stage": "packaged",
+  "stage": "published",
   "failed": {},
   "succeeded": [
     "atmosphere",
@@ -20,5 +20,7 @@
     "oxide"
   ],
   "shortfall": 0,
-  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)",
+  "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645729",
+  "published_at": "2026-11-12T01:44:52.895038+00:00"
 }
