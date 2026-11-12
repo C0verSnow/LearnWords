@@ -33,3 +33,5 @@ python -m scripts.import_vocabulary --source /path/to/word_list.csv
 ## 验证
 
 通过现有 GitHub Actions **Tests** 运行真实实现回归：CSV 带 BOM、带逗号的释义、重复词、短语、无效输入不覆盖词表；提交的 3592 个词条全部可选；已交付排除、耗尽、随机及顺序模式；真实 eSpeak NG 和 Anki 打包包含带空格词条的双口音媒体。测试无需访问上游 CSV 或豆包账号。按仓库约定不在本地编译或运行测试。
+
+本次源代码提交 `1161ffc` 的远端 [Tests #43](https://github.com/C0verSnow/LearnWords/actions/runs/43132675432) 已通过，16 项测试全部成功；[PR #5](https://github.com/C0verSnow/LearnWords/pull/5) 保持打开等待用户 review，没有自动合并。

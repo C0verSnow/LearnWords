@@ -6,6 +6,8 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794445967] issue #4 完成：PR #5 已提交等待用户 review，没有合并；issue #4 已按原文要求关闭。源代码 1161ffc 的远端 Tests 43132675432 全部 16 项通过，含新词表完整性、CSV 导入、短语双口音音频和 APKG/ZIP。README、词表来源说明与更新命令已补齐；已在 GitHub 检索核对指定来源，未复制实现代码。只做本地数据生成、AST 语法读取与差异检查，没有本地编译或测试。
+- [1794445717] 开始 issue #4：在 feature/issue-4-ielts-vocabulary 替换五个示例词为用户指定雅思词表，核对来源、数量与格式，补充测试和文档后提 PR 等待 review，并按要求关闭 issue；不做本地编译或测试。
 - [1794445815] issue #4 已查清旧词表位于 docs/words/vocabulary.txt，仅 5 个示例；GitHub 指定 CSV 共 3632 行、3592 个去重词条和 9 个短语。固定来源提交 4bf8da4c12fca6a9508f99dd71d7157495173882，新增标准库 CSV 导入脚本并实际生成替换词表，扩展选词支持空格短语，保留已交付记录。来源仓库无许可证，仅按用户指定提取词条，不借用实现代码。正在补充远端回归。
 - [1794420246] 原生选区/Backspace 修复后的两轮远端 Tests 43073535651、43073544831 均全部 13 项通过；同一源代码 be55f35 的真实 Probe 43073545078 也成功，新 Runner 继续恢复真实登录并完成查询、加密归档保存和路由清理。GitHub 已检索并记录 Tailscale、dnsmasq/nft、DrissionPage、cryptography 等实现参考；未进行本地编译或测试。准备将 PR #3 标为可审阅，仍按原约定不自动合并 main。
 - [1794420091] 已下载真实 Release 逐项读取：ZIP 内 APKG 与独立 APKG 字节相同；SQLite 为 approach 的 1 条笔记/1 张卡片，UK/US 两段 WAV 各约 0.8 秒、22050 Hz，字段音频引用齐全。manifest 无失败或数量不足；Make cards 清理步骤成功，未见 Telegram 通知失败。Anki 导入依约留给用户另机验收，main 仍等 PR review。
@@ -75,7 +77,6 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
-- [1794445717] 开始 issue #4：在 feature/issue-4-ielts-vocabulary 替换五个示例词为用户指定雅思词表，核对来源、数量与格式，补充测试和文档后提 PR 等待 review，并按要求关闭 issue；不做本地编译或测试。
 - [1794419992] 远端 Tests 43068013679 重跑明确复现旧草稿未清空。核对固定 DrissionPage 源码后，改为 DOM Range 只选中富文本框内容，再由原生 Backspace 删除；修正测试页 Enter 回退分支为单独 /enter 场景，保留正常页 Enter 不提交契约。只做静态检查，随后用远端 CI 和真实 Probe 验证。
 - [1794417640] Probe 43065087057 的私有限流响应明确 is_limit=false、limit_time=0。新界面出现 role=button 的“新对话”，旧 create_conversation_button 消失；快照富文本框仅 1 个空换行，未找到发送按钮。固定 DP 源码确认 input 默认 clear=False 且仅 DOM.focus。把真实 Chrome 回归页改为 contenteditable，加入残留旧草稿提交断言，先跑远端旧实现；随后修正新控件等待与显式聚焦/清空。
 - [1794416849] 328fbb3 的远端 Tests 43063284636 通过；Probe 43063605311 网络/真实登录/15.9 MB 归档保存通过，发送前却未找到 send 按钮，RuntimeError 未进入旧的超时/登录异常快照分支，私有诊断仍是上一轮。现覆盖该异常，监听在恢复前启动且只采账号/主站/签名 POST，补充富文本框可见性和字数快照，先查看真实切换后页面。
