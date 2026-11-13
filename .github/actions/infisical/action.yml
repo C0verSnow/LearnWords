@@ -1,0 +1,37 @@
+name: Load Infisical runner configuration
+description: Read this application's dev directory with the organization machine identity
+inputs:
+  client-id:
+    required: true
+    description: Organization Universal Auth client ID
+  client-secret:
+    required: true
+    description: Organization Universal Auth client secret
+  project-id:
+    required: true
+    description: Shared Infisical project
+  environment:
+    required: true
+    description: Infisical environment
+  secret-path:
+    required: true
+    description: Repository secret path
+  api-url:
+    required: true
+    description: Infisical Cloud URL
+runs:
+  using: composite
+  steps:
+    - name: Install pinned and verified Infisical CLI
+      shell: bash
+      run: bash scripts/install_infisical.sh
+    - name: Load runner secrets
+      shell: bash
+      env:
+        INFISICAL_CLIENT_ID: ${{ inputs.client-id }}
+        INFISICAL_CLIENT_SECRET: ${{ inputs.client-secret }}
+        INFISICAL_PROJECT_ID: ${{ inputs.project-id }}
+        INFISICAL_ENVIRONMENT: ${{ inputs.environment }}
+        INFISICAL_SECRET_PATH: ${{ inputs.secret-path }}
+        INFISICAL_API_URL: ${{ inputs.api-url }}
+      run: python scripts/load_infisical.py

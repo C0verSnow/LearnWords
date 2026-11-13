@@ -20,3 +20,29 @@ jobs:
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
       - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -v
+
+  secrets:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          environment: ${{ vars.INFISICAL_ENVIRONMENT }}
+          secret-path: ${{ secrets.INFISICAL_SECRET_PATH }}
+          api-url: ${{ vars.INFISICAL_API_URL }}
+      - name: Verify configuration without opening a browser or sending messages
+        run: |
+          test -n "$BROWSER_PROFILE_KEY"
+          test -n "$TS_OAUTH_SECRET"
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+          test -n "$TELEGRAM_BOT_TOKEN"
+          test -z "${GITHUB_TOKEN:-}"
+          echo 'Runner configuration is available; deployment token was not injected'
