@@ -12,7 +12,7 @@
 
 本机 `.env` 只留统一的 Infisical 启动配置，并保持 Git 忽略和 0600 权限。业务密钥在上表对应目录维护，不再把整包 ENV 当组织 Secret 更新。Vercel 已通过官方 Secret Sync 从 `/learnwords/vercel` 分发到 learnwords 项目的 Production 与 Preview，保留原有目标范围和敏感类型，禁止删除其他目标键。两项同步均已 succeeded；Vercel 敏感值无法读回，不冒充明文核对，线上既有部署使用哪版值仍以部署时间为准。
 
-迁移前的 GitHub 业务密钥先保留给默认分支的旧工作流。合并这次接入后，再删除这几项旧仓库 Secret 和 LearnWords 专属组织 Secret，避免接入期间断供。旧 Infisical 项目留作回退，不继续维护双份。
+用户已批准并合并接入 PR #8。原来的三项仓库业务 Secret、四项 LearnWords 专属组织 Secret 和三项旧 Variables 已删除；本仓库现在只保存路径 Secret，共用凭证与定位参数继承组织配置。旧 Infisical 项目留作回退，不继续维护双份。
 
 ## 实现依据与验证
 
