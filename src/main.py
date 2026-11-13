@@ -9,10 +9,10 @@ from src.archive import build_archive
 from src.config import ROOT, load_config, required_env
 from src.content import parse_content
 from src.doubao import Doubao, LoginExpired
-from src.github import GitHub
+from src.github import GitHub, GitHubError
 from src.pronunciation import pronunciation
 from src.repository import checkpoint, read_json, utc_now, write_json
-from src.telegram import notify
+from src.telegram import notify, send_document
 from src.vocabulary import select_words
 
 
@@ -26,7 +26,7 @@ def run(args, config):
     github = GitHub(required_env("GITHUB_TOKEN"), required_env("GITHUB_REPOSITORY"),
                     os.getenv("GITHUB_REF", "main"))
     if manifest and manifest["stage"] == "published":
-        notify(args.chat_id, summary(manifest))
+        notify_delivery(args.chat_id, manifest, github, output)
         return 0
     if manifest is None:
         selected = select_words(ROOT / "docs/words/vocabulary.txt", records, args.count, args.mode)
@@ -37,7 +37,7 @@ def run(args, config):
         if release and not release["draft"]:
             manifest["release_url"] = release["html_url"]
             record_delivery(manifest, records, records_path, manifest_path, github)
-            notify(args.chat_id, summary(manifest))
+            notify_delivery(args.chat_id, manifest, github, output)
             return 0
         manifest.pop("error", None)
         manifest.update({"failed": {}, "succeeded": [], "shortfall": manifest["requested"] - len(manifest["selected"]),
@@ -62,7 +62,7 @@ def run(args, config):
         manifest["release_url"] = github.publish(args.request_id, [apkg, archive, asset_manifest],
                                                  summary(manifest), commit)
         record_delivery(manifest, records, records_path, manifest_path, github)
-        notify(args.chat_id, summary(manifest))
+        notify_delivery(args.chat_id, manifest, github, output, files=[apkg, archive])
         return 0
     except Exception as error:
         manifest["stage"] = "delivery_record_failed" if manifest.get("release_url") else "failed"
@@ -77,6 +77,26 @@ def run(args, config):
         return 1
     finally:
         write_json(output / "manifest.json", manifest)
+
+
+def notify_delivery(chat_id, manifest, github, output, files=None):
+    notify(chat_id, summary(manifest))
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token or not chat_id:
+        return
+    download = files is None
+    if download:
+        files = [output / f"LearnWord-{manifest['task_id']}.{suffix}" for suffix in ("apkg", "zip")]
+    for path in files:
+        try:
+            if download:
+                github.download_asset(manifest["task_id"], path)
+            send_document(token, chat_id, path)
+        except (GitHubError, RuntimeError, OSError):
+            text = (f"{path.name} 发送失败或超过 Telegram 50 MB 上限；可从 Release 下载："
+                    f"\n{manifest['release_url']}\n需要补发时，在 Actions 重跑原任务。")
+            print(text, flush=True)
+            notify(chat_id, text)
 
 
 def record_delivery(manifest, records, records_path, manifest_path, github):

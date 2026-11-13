@@ -86,6 +86,8 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
+- [1794549183] 已完成首次发布与原任务补发两个入口，分别上传 APKG、ZIP；发送失败保留 Release。已检索比较 python-telegram-bot 与 pyTelegramBotAPI 的维护、许可、依赖和限制，来源写入 docs/design.md；补齐 README 和真实 HTTP 回归，准备提交后跑已有远端 Tests，不在本地执行。
+- [1794548890] 开始处理 issue #6：已确认评论要求制卡成功后通过 Telegram 发送 APKG 和 ZIP；从最新 main 建 feature 分支，沿用现有 Bot 与 Release，不进行本地构建或测试。
 
 
 
