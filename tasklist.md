@@ -6,6 +6,7 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794549537] issue #6 补记：仅更新任务记录后的 Tests 43375297750 首次执行有 1 项原有浏览器测试在 tests/test_browser.py:169 超时，新增 Telegram 测试均通过；此前代码提交的 Tests 43374981050 已 22 项全过。按现有流程重跑失败任务，并核对最终分支检查；不修改本次范围外的浏览器实现，不进行本地验证。
 - [1794549387] issue #6 已实现：制卡发布后把 APKG 和 ZIP 发到 Telegram，重跑从 Release 补发；单个文件失败或超限不影响制卡结果。PR #7：https://github.com/C0verSnow/LearnWords/pull/7 ，等待用户 review，未合并；issue 已按要求关闭。远端 Tests 43374981050 全部 22 项通过：https://github.com/C0verSnow/LearnWords/actions/runs/43374981050 。README、设计参考已更新，GitHub 已检索到 python-telegram-bot 与 pyTelegramBotAPI；无本地构建、编译或测试，测试未联系真实 Bot。
 - [1794548890] 开始处理 issue #6：已确认评论要求制卡成功后通过 Telegram 发送 APKG 和 ZIP；从最新 main 建 feature 分支，沿用现有 Bot 与 Release，不进行本地构建或测试。
 - [1794549183] 已完成首次发布与原任务补发两个入口，分别上传 APKG、ZIP；发送失败保留 Release。已检索比较 python-telegram-bot 与 pyTelegramBotAPI 的维护、许可、依赖和限制，来源写入 docs/design.md；补齐 README 和真实 HTTP 回归，准备提交后跑已有远端 Tests，不在本地执行。
