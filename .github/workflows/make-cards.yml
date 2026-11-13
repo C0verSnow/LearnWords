@@ -33,22 +33,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 330
     env:
-      TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-      TS_EXPECTED_IPV4: ${{ vars.TS_EXPECTED_IPV4 }}
-      TS_EXPECTED_IPV6: ${{ vars.TS_EXPECTED_IPV6 }}
-      BROWSER_PROFILE_KEY: ${{ secrets.BROWSER_PROFILE_KEY }}
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_REF: ${{ github.ref_name }}
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      SESSION_MODE: ${{ vars.SESSION_MODE || 'profile' }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: doubao.json
-      SUPABASE_PROFILE_OBJECT: doubao-profile.tar.gz.enc
-      MAX_CARDS: ${{ vars.MAX_CARDS || '100' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,6 +45,14 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          environment: ${{ vars.INFISICAL_ENVIRONMENT }}
+          secret-path: ${{ secrets.INFISICAL_SECRET_PATH }}
+          api-url: ${{ vars.INFISICAL_API_URL }}
       - name: Install Chrome, speech engine and Python dependencies
         run: |
           bash scripts/install_runner_packages.sh espeak-ng
@@ -69,15 +64,15 @@ jobs:
         run: command -v xvfb-run
       - uses: ./.github/actions/tailscale-doubao
         with:
-          client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          client-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          exit-node: ${{ vars.TS_EXIT_NODE }}
+          client-id: ${{ env.TS_OAUTH_CLIENT_ID }}
+          client-secret: ${{ env.TS_OAUTH_SECRET }}
+          exit-node: ${{ env.TS_EXIT_NODE }}
       - name: Generate, checkpoint, publish and notify
         env:
           COUNT: ${{ inputs.count }}
           MODE: ${{ inputs.mode }}
           REQUEST_ID: ${{ inputs.request_id || format('run-{0}', github.run_id) }}
-          CHAT_ID: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ inputs.chat_id || env.TELEGRAM_CHAT_ID }}
         run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m src.main --count "$COUNT" --mode "$MODE" --request-id "$REQUEST_ID" --chat-id "$CHAT_ID"
       - name: Restore runner routing and remove private working files
         if: always()

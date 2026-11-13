@@ -114,3 +114,5 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表导入、3592 词完整性和短语选词，并通过 Runner 内 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点，以及 Telegram 两种文件的 multipart 上传内容、失败隔离、大小限制和从 Release 补发。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号；Telegram 测试不联系真实 Bot 或发送私聊。
 
 真实上线验收清单在 [会话实验](docs/session-research.md)。设计比较和开源来源见 [参考设计](docs/design.md)。
+
+密钥配置与目录分工见 [密钥说明](docs/secrets.md)。

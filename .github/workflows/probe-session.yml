@@ -22,22 +22,19 @@ jobs:
   probe:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    env:
-      TS_EXIT_NODE: ${{ vars.TS_EXIT_NODE }}
-      TS_EXPECTED_IPV4: ${{ vars.TS_EXPECTED_IPV4 }}
-      TS_EXPECTED_IPV6: ${{ vars.TS_EXPECTED_IPV6 }}
-      BROWSER_PROFILE_KEY: ${{ secrets.BROWSER_PROFILE_KEY }}
-      SESSION_MODE: ${{ inputs.session_mode || vars.SESSION_MODE || 'profile' }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_SESSION_BUCKET: ${{ vars.SUPABASE_SESSION_BUCKET || 'browser-sessions' }}
-      SUPABASE_SESSION_OBJECT: doubao.json
-      SUPABASE_PROFILE_OBJECT: doubao-profile.tar.gz.enc
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          environment: ${{ vars.INFISICAL_ENVIRONMENT }}
+          secret-path: ${{ secrets.INFISICAL_SECRET_PATH }}
+          api-url: ${{ vars.INFISICAL_API_URL }}
       - run: |
           python -m pip install -r requirements-worker.txt
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
@@ -45,9 +42,9 @@ jobs:
         run: command -v xvfb-run
       - uses: ./.github/actions/tailscale-doubao
         with:
-          client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          client-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          exit-node: ${{ vars.TS_EXIT_NODE }}
+          client-id: ${{ env.TS_OAUTH_CLIENT_ID }}
+          client-secret: ${{ env.TS_OAUTH_SECRET }}
+          exit-node: ${{ env.TS_EXIT_NODE }}
       - name: Encrypt the legacy profile without opening Chrome
         if: inputs.target == 'migrate'
         run: python -m scripts.session migrate
@@ -56,6 +53,8 @@ jobs:
         run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session domains
       - name: Probe Doubao session
         if: inputs.target == 'session'
+        env:
+          SESSION_MODE: ${{ inputs.session_mode || env.SESSION_MODE || 'profile' }}
         run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m scripts.session probe
       - name: Restore runner routing and remove private working files
         if: always()
