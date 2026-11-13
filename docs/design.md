@@ -1,5 +1,18 @@
 # 设计与开源参考
 
+## 2026-11-13 Telegram 发送制卡文件（issue #6）
+
+先在 GitHub 检索同类实现，比较以下维护活跃、许可明确的候选；不复制第三方源码，也不新增 SDK。
+
+| 项目 | 本次核对的维护和许可 | 实现思路与依赖 | 已知限制与本项目选择 |
+| --- | --- | --- | --- |
+| [python-telegram-bot/python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) | 29,584 stars，2026-11-12 有推送，GPL-3.0；[issue #5341](https://github.com/python-telegram-bot/python-telegram-bot/issues/5341) 有成员回复 | 异步 Bot、HTTPX，通过文件输入封装上传；见 [send_document](https://github.com/python-telegram-bot/python-telegram-bot/blob/master/src/telegram/_bot.py) | 远程 URL 发文件有格式限制，不能把 APKG 下载链接直接当文档发送；借鉴上传实际文件的方式，本项目不引入异步客户端。 |
+| [eternnoir/pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI) | 8,796 stars，2026-10-31 有推送，GPL-2.0；[issue #2653](https://github.com/eternnoir/pyTelegramBotAPI/issues/2653) 有协作者回复 | 同步接口使用 requests，把文件对象和原文件名放进 multipart；见 [send_data / _make_request](https://github.com/eternnoir/pyTelegramBotAPI/blob/master/telebot/apihelper.py) | 网络失败、API 拒绝和超时仍需调用方处理；沿用本项目已有 requests，只实现所需的 sendDocument 调用。 |
+
+依据 [Telegram 官方文件发送规则](https://core.telegram.org/bots/api#sending-files) 和 [sendDocument](https://core.telegram.org/bots/api#senddocument)：按 URL 发送文档仅保证 PDF、ZIP，multipart 上传支持 APKG；公共 Bot API 单文件上限 50 MB。上传前按 50,000,000 字节检查，超限提示 Release 下载，不为大文件引入自建 Bot API 服务或分片。
+
+发布 Release 并保存交付记录后，发送结果通知，再分别上传 APKG、ZIP。每个文件独立处理失败，不改变已发布状态，也不阻止另一个文件。重跑已发布任务或恢复最后交付记录时，通过 GitHub 资产下载接口取回原文件，仍以 multipart 补发；不重新制卡或重建 Release。保留重复补发两个文件的简单行为，不增加额外去重存储。远端 Tests 使用真实 HTTP 请求、multipart 解析和现有真实制卡/发布/恢复流程验证，不联系真实 Telegram。
+
 2026-11-10 在 GitHub 检索浏览器自动化、Anki 制卡和发音合成实现；没有直接复制第三方项目代码。
 
 | 项目 | 检索时的维护情况 | 依赖与思路 | 已知限制与采用方式 |

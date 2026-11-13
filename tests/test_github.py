@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -9,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import requests
 
@@ -18,11 +20,19 @@ from src.commands import handle_command, parse_command
 from src.github import GitHub, GitHubError
 from src.content import FIELDS
 from src.main import run
+from test_telegram import TelegramServer
 
 
 class GitHubServer(BaseHTTPRequestHandler):
     def do_GET(self):
-        if "/contents/" in self.path:
+        if "/releases/assets/" in self.path:
+            asset_id = int(self.path.rsplit("/", 1)[-1])
+            self.server.downloads.append(asset_id)
+            self.send_response(self.server.download_status)
+            self.end_headers()
+            if self.server.download_status == 200:
+                self.wfile.write(self.server.asset_data[asset_id])
+        elif "/contents/" in self.path:
             if self.server.request_file:
                 self.reply(200, {"content": base64.b64encode(b"{}").decode(), "sha": "abc"})
             else:
@@ -54,6 +64,11 @@ class GitHubServer(BaseHTTPRequestHandler):
             self.reply(201, self.server.release)
         else:
             self.server.uploads.append((self.path, raw))
+            if self.server.upload_status == 201:
+                name = parse_qs(urlparse(self.path).query)["name"][0]
+                asset_id = len(self.server.asset_data) + 1
+                self.server.asset_data[asset_id] = raw
+                self.server.release["assets"].append({"id": asset_id, "name": name})
             self.reply(self.server.upload_status, {})
 
     def do_PATCH(self):
@@ -81,6 +96,9 @@ class GitHubTests(unittest.TestCase):
         self.server.release = None
         self.server.uploads = []
         self.server.upload_status = 201
+        self.server.asset_data = {}
+        self.server.downloads = []
+        self.server.download_status = 200
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.github = GitHub("test", "owner/repo", "feature/test",
@@ -150,7 +168,30 @@ class GitHubTests(unittest.TestCase):
             self.github.publish("tg-7", [path], "result", "abc")
             self.assertEqual(len(self.server.uploads), uploads)
 
+    def test_download_requires_matching_public_asset_and_handles_http_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cards.apkg"
+            for release in (None, {"draft": True}, {"draft": False, "assets": []}):
+                self.server.release = release
+                with self.assertRaises(GitHubError):
+                    self.github.download_asset("tg-7", path)
+            self.server.release = {"draft": False, "assets": [{"id": 1, "name": path.name}]}
+            self.server.download_status = 503
+            with self.assertRaises(GitHubError):
+                self.github.download_asset("tg-7", path)
+            self.assertFalse(path.exists())
+
     def test_runner_real_cached_content_to_release_checkpoint_and_resume(self):
+        telegram = ThreadingHTTPServer(("127.0.0.1", 0), TelegramServer)
+        telegram.documents = []
+        telegram.messages = []
+        telegram.document_responses = {}
+        telegram.message_response = (200, {"ok": True})
+        thread = threading.Thread(target=telegram.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(telegram.server_close)
+        self.addCleanup(telegram.shutdown)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "work"
             origin = Path(directory) / "origin.git"
@@ -172,13 +213,16 @@ class GitHubTests(unittest.TestCase):
             git("add", ".")
             git("commit", "-m", "fixture")
             git("push", "-u", "origin", "feature/test")
-            args = SimpleNamespace(request_id="tg-7", count=3, mode="next", chat_id="")
+            args = SimpleNamespace(request_id="tg-7", count=3, mode="next", chat_id="9")
             config = {"attempts": 2, "doubao": {}}
             with patch("src.main.ROOT", root), patch("src.main.GitHub", return_value=self.github), \
-                    patch.dict(os.environ, {"GITHUB_TOKEN": "test", "GITHUB_REPOSITORY": "owner/repo"}):
+                    patch("src.telegram.API_URL", f"http://127.0.0.1:{telegram.server_port}"), \
+                    patch.dict(os.environ, {"GITHUB_TOKEN": "test", "GITHUB_REPOSITORY": "owner/repo",
+                                            "TELEGRAM_BOT_TOKEN": "test"}):
                 self.server.upload_status = 500
                 self.assertEqual(run(args, config), 1)
                 self.assertFalse((root / "docs/records/generated.json").exists())
+                self.assertEqual(telegram.documents, [])
                 self.server.upload_status = 201
                 self.assertEqual(run(args, config), 0)
                 records = json.loads((root / "docs/records/generated.json").read_text())
@@ -188,9 +232,19 @@ class GitHubTests(unittest.TestCase):
                 self.assertNotIn("error", manifest)
                 self.assertEqual(manifest["shortfall"], 1)
                 self.assertEqual(set(manifest["failed"]), {"context"})
+                names = ["LearnWord-tg-7.apkg", "LearnWord-tg-7.zip"]
+                self.assertEqual([d["name"] for d in telegram.documents], names)
+                for document in telegram.documents:
+                    self.assertEqual(document["content"],
+                                     (root / "output/tg-7" / document["name"]).read_bytes())
+                    self.assertEqual(document["chat_id"], "9")
+                shutil.rmtree(root / "output")
                 uploads = len(self.server.uploads)
                 self.assertEqual(run(args, config), 0)
                 self.assertEqual(len(self.server.uploads), uploads)
+                self.assertEqual([d["name"] for d in telegram.documents], names * 2)
+                self.assertEqual(telegram.documents[:2], telegram.documents[2:])
+                self.assertEqual(len(self.server.downloads), 2)
                 # Reproduce a missing final checkpoint after the release became public.
                 manifest["stage"] = "packaged"
                 manifest["error"] = "CalledProcessError"
@@ -204,6 +258,14 @@ class GitHubTests(unittest.TestCase):
                 self.assertEqual(set(records), {"approach"})
                 recovered = json.loads((root / "docs/manifests/tg-7.json").read_text())
                 self.assertNotIn("error", recovered)
+                self.assertEqual(len(self.server.uploads), uploads)
+                self.assertEqual([d["name"] for d in telegram.documents], names * 3)
+                # A failed Telegram upload must not invalidate the published checkpoint.
+                telegram.document_responses[names[0]] = (500, {"ok": False})
+                self.assertEqual(run(args, config), 0)
+                self.assertEqual([d["name"] for d in telegram.documents[-2:]], names)
+                self.assertEqual(json.loads((root / "docs/manifests/tg-7.json").read_text())["stage"],
+                                 "published")
                 self.assertEqual(len(self.server.uploads), uploads)
             self.assertEqual(git("status", "--porcelain").strip(), "?? output/")
             self.assertEqual(git("rev-parse", "HEAD").strip(),

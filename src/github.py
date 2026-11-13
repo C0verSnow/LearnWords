@@ -87,6 +87,25 @@ class GitHub:
                 raise
             return None
 
+    def download_asset(self, task_id, path):
+        release = self.find_release(task_id)
+        if release is None or release["draft"]:
+            raise GitHubError(404)
+        asset = next((asset for asset in release["assets"] if asset["name"] == path.name), None)
+        if asset is None:
+            raise GitHubError(404)
+        try:
+            with self.http.get(f"{self.base}/releases/assets/{asset['id']}",
+                               headers={"Accept": "application/octet-stream"},
+                               stream=True, timeout=120) as response:
+                if not response.ok:
+                    raise GitHubError(response.status_code)
+                with path.open("wb") as stream:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        stream.write(chunk)
+        except requests.RequestException:
+            raise GitHubError(503) from None
+
     def publish(self, task_id, files, body, commit):
         release = self.find_release(task_id)
         if release is None:
