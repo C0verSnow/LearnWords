@@ -6,6 +6,9 @@
 - [1794301047] 完成 issue #1：通过 Telegram 发起任务，在 GitHub Actions 操作豆包，制作并发布带音频的 Anki 卡包。
 
 ## 做完：
+- [1794549387] issue #6 已实现：制卡发布后把 APKG 和 ZIP 发到 Telegram，重跑从 Release 补发；单个文件失败或超限不影响制卡结果。PR #7：https://github.com/C0verSnow/LearnWords/pull/7 ，等待用户 review，未合并；issue 已按要求关闭。远端 Tests 43374981050 全部 22 项通过：https://github.com/C0verSnow/LearnWords/actions/runs/43374981050 。README、设计参考已更新，GitHub 已检索到 python-telegram-bot 与 pyTelegramBotAPI；无本地构建、编译或测试，测试未联系真实 Bot。
+- [1794548890] 开始处理 issue #6：已确认评论要求制卡成功后通过 Telegram 发送 APKG 和 ZIP；从最新 main 建 feature 分支，沿用现有 Bot 与 Release，不进行本地构建或测试。
+- [1794549183] 已完成首次发布与原任务补发两个入口，分别上传 APKG、ZIP；发送失败保留 Release。已检索比较 python-telegram-bot 与 pyTelegramBotAPI 的维护、许可、依赖和限制，来源写入 docs/design.md；补齐 README 和真实 HTTP 回归，准备提交后跑已有远端 Tests，不在本地执行。
 - [1794447339] 245 路由器分流修改完成：已取消整机 MAC 绕过，来源 245 的豆包及出口检查优先直连，其余继续原代理规则；清旧 DNS 缓存后 Google 204、YouTube/豆包 200，连接记录确认 DIRECT 与代理分开。已有远端 network Probe 43135116122 全部通过，目标出口 CN、豆包无区域限制、退出清理成功；未复测登录或制卡。路由器源配置已与用户 myenv/config.yaml 解析后一致，无需重复替换；245 未启动第二套 Mihomo。备份 /root/learnwords-split-backup-1794447016，说明见 docs/openclash-245-split.md。已检索 GitHub OpenClash/Mihomo 官方实现与相关问题；无本地编译验证。
 - [1794447183] 245 清理切换前的 systemd-resolved DNS 缓存后，Google 204、YouTube 200、豆包 200；此前 Google 解析到错误地址，未为此新增规则。OpenClash 实际连接确认豆包/指定 Cloudflare 检查命中来源 245 的 AND 直连规则，Google 命中 google_domain 并走代理。已启动现有远端 network Probe 43135116122，验证 Tailscale 完整链路。
 - [1794447116] 路由器已取消 245 MAC 整机绕过，15 条仅限来源 245 的优先直连规则及目标 DNS 真实地址设置已生效；OpenClash 已成功重启。245 实测豆包 HTTP 200、www.cloudflare.com 为 CN、cloudflare.com 为 JP，Tailscale 在线且无健康告警。Google 首次 HTTPS 超时，继续查连接；准备已有远端 network Probe 验证完整链路，不扩大修改其他设备。
@@ -86,8 +89,6 @@
 - [1794301047] 按约定不做本地构建、编译或会触发编译的验证；远端测试和真实登录实验另行记录。
 
 ## 在做：
-- [1794549183] 已完成首次发布与原任务补发两个入口，分别上传 APKG、ZIP；发送失败保留 Release。已检索比较 python-telegram-bot 与 pyTelegramBotAPI 的维护、许可、依赖和限制，来源写入 docs/design.md；补齐 README 和真实 HTTP 回归，准备提交后跑已有远端 Tests，不在本地执行。
-- [1794548890] 开始处理 issue #6：已确认评论要求制卡成功后通过 Telegram 发送 APKG 和 ZIP；从最新 main 建 feature 分支，沿用现有 Bot 与 Release，不进行本地构建或测试。
 
 
 
