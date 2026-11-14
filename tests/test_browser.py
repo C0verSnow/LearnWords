@@ -42,6 +42,7 @@ class BrowserPage(BaseHTTPRequestHandler):
           }
         };
         document.querySelector('#editor').oninput = () => {
+          if (location.pathname === '/enter') return;
           const send = document.querySelector('#send');
           send.disabled = true;
           clearTimeout(window.sendReady);
