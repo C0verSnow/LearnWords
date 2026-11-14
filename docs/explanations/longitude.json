@@ -1,0 +1,9 @@
+{
+  "Word": "longitude",
+  "Intuition": "母语者看到这个词，直觉上就是和东西方向、经线挂钩的地理坐标，和南北方向的那一组坐标对应起来",
+  "Meaning": "经度，指地球上某地距离本初子午线的东西方位度数",
+  "Usage": "多用于地理、地图、航海、定位、气象、测绘相关场景",
+  "Examples": "1. The city is located at a longitude of 120 degrees east. 这座城市位于东经 120 度。2. We need to record the latitude and longitude of the sampling point. 我们需要记录采样点的纬度和经度。",
+  "Comparison": "和 latitude（纬度）容易混淆，longitude 代表东西方向的经度，latitude 代表南北方向的纬度",
+  "MemoryTip": "longitude 对应东西经线，latitude 对应南北纬线"
+}

@@ -62,7 +62,7 @@ def run(args, config):
         manifest["release_url"] = github.publish(args.request_id, [apkg, archive, asset_manifest],
                                                  summary(manifest), commit)
         record_delivery(manifest, records, records_path, manifest_path, github)
-        notify_delivery(args.chat_id, manifest, github, output, files=[apkg, archive])
+        notify_delivery(args.chat_id, manifest, github, output)
         return 0
     except Exception as error:
         manifest["stage"] = "delivery_record_failed" if manifest.get("release_url") else "failed"
@@ -79,24 +79,20 @@ def run(args, config):
         write_json(output / "manifest.json", manifest)
 
 
-def notify_delivery(chat_id, manifest, github, output, files=None):
+def notify_delivery(chat_id, manifest, github, output):
     notify(chat_id, summary(manifest))
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token or not chat_id:
         return
-    download = files is None
-    if download:
-        files = [output / f"LearnWord-{manifest['task_id']}.{suffix}" for suffix in ("apkg", "zip")]
-    for path in files:
-        try:
-            if download:
-                github.download_asset(manifest["task_id"], path)
-            send_document(token, chat_id, path)
-        except (GitHubError, RuntimeError, OSError):
-            text = (f"{path.name} 发送失败或超过 Telegram 50 MB 上限；可从 Release 下载："
-                    f"\n{manifest['release_url']}\n需要补发时，在 Actions 重跑原任务。")
-            print(text, flush=True)
-            notify(chat_id, text)
+    path = output / f"LearnWord-{manifest['task_id']}.apkg"
+    try:
+        github.download_asset(manifest["task_id"], path)
+        send_document(token, chat_id, path)
+    except (GitHubError, RuntimeError, OSError):
+        text = (f"{path.name} 下载、发送失败或超过 Telegram 50 MB 上限；可从 Release 下载："
+                f"\n{manifest['release_url']}\n需要补发时，在 Actions 重跑原任务。")
+        print(text, flush=True)
+        notify(chat_id, text)
 
 
 def record_delivery(manifest, records, records_path, manifest_path, github):

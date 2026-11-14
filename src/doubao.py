@@ -82,7 +82,8 @@ class Doubao:
             send_button = tab.ele(self.config["send"], timeout=15)
             if not send_button:
                 raise RuntimeError("未找到发送按钮，请更新 send 选择器")
-            send_button.click()
+            if not send_button.click(timeout=15):
+                raise RuntimeError("豆包发送按钮未就绪，消息未发送，请稍后重跑任务")
         else:
             editor.input(Keys.ENTER)
         deadline = time.monotonic() + self.config["timeout"]

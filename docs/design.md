@@ -1,6 +1,26 @@
 # 设计与开源参考
 
-## 2026-11-13 Telegram 发送制卡文件（issue #6）
+## 2026-11-13 只从 Release 下载并发送 APKG（issue #9，当前行为）
+
+在 GitHub 检索本仓库的 `send_document`，确认 issue #6 已实现 multipart 上传和 `GitHub.download_asset`，本轮直接复用，不新增 SDK，也不复制第三方代码。已有开源比较与来源见下节的 [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) 和 [pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI)。
+
+首次发布、重跑已发布任务、恢复交付记录都使用同一个发送函数：先发结果通知，按任务号查找公开 Release，下载名称为 `LearnWord-<任务号>.apkg` 的资产，再以 multipart 上传到发起任务的 Telegram 聊天。取消首次发送本地产物的旁路和 ZIP 发送循环；ZIP 与 manifest 仍作为 Release 资源保存。没有聊天 ID 或 Bot token 时直接跳过下载和发送。
+
+结果通知失败仍尝试发 APKG。下载、上传失败或超过现有 50 MB 上限时，保留已发布状态，提示 Release 下载和重跑原任务；下载失败时不会拿旧的本地文件冒充下载结果。沿用原有恢复方式，不新增发送状态表或去重逻辑。远端 Tests 在真实制卡、Git 检查点、Release HTTP 服务和 Telegram multipart 服务之间验证完整流程，核对首次和恢复路径都只下载、发送 APKG，且发送字节与 Release 资产一致。
+
+### 真实浏览器发送按钮就绪问题
+
+用户报告 `authenticated` 登录检查失败后，真实 Probe 43557857104 在原配置下确认登录恢复成功，但查询超时。当前私有截图显示提示词仍在编辑器里，发送没有生效，因此没有凭此前提示重做登录或更换账号选择器。
+
+在 GitHub 检索 [DrissionPage 等待与点击实现](https://github.com/g1879/DrissionPage/blob/master/DrissionPage/_units/clicker.py)，再读取 [固定 4.1.1.4 发布包](https://pypi.org/project/DrissionPage/4.1.1.4/) 核对：`click()` 默认等待 1.5 秒，按钮不可用时默认返回 `False`；旧代码忽略结果，随后只等回答。使用真实 Chrome 测试页，在输入后延迟 2 秒启用按钮复现。发送使用现有原生点击，等待 15 秒并检查结果；没有完成点击时明确报“消息未发送”，不改为 JavaScript 点击或自动连点，也不新增依赖。
+
+### 真实制卡验收
+
+[Make cards 43558629987](https://github.com/C0verSnow/LearnWords/actions/runs/43558629987) 在 feature 分支成功完成：使用已有私有档案恢复登录，在线生成尚未缓存的 `longitude`，生成英美音标和 WAV，发布 [Release](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-apkg-1794631798)，保存交付记录，再从对应 Release 下载 APKG 并上传到用户原私聊。Bot token 和聊天 ID 均已传入，文件上传经过 Telegram HTTP 状态和 `ok` 响应检查，没有触发下载或发送失败提示。只发送 APKG；ZIP 和 manifest 保留在 Release。
+
+对下载产物进行静态读取：APKG 为 144,486 字节，SHA-256 为 `93a4c17ed083ba5e667b6143cd2ad268289237aaa3efe7df7d3ebaaf07442aea`，与 Release digest 一致。SQLite 内为 1 条笔记、1 张卡片，单词为 `longitude`；两个 sound 字段分别引用 UK/US WAV，媒体均已打包，采样率 22,050 Hz，帧数分别为 21,285 和 22,021。本机只读取 ZIP、SQLite 和 WAV，未构建、编译或运行测试。Anki 客户端导入仍需用户另机检查；PR 未合并，生产入口仍使用 main。
+
+## 2026-11-13 Telegram 发送制卡文件（issue #6，历史方案，已由 issue #9 调整）
 
 先在 GitHub 检索同类实现，比较以下维护活跃、许可明确的候选；不复制第三方源码，也不新增 SDK。
 
