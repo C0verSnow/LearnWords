@@ -116,4 +116,6 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 真实上线验收清单在 [会话实验](docs/session-research.md)。设计比较和开源来源见 [参考设计](docs/design.md)。
 
+2026-11-13 已在 feature 分支完成一次 [真实制卡与 Telegram APKG 发送](https://github.com/C0verSnow/LearnWords/actions/runs/43558629987)：在线生成 `longitude`，发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-apkg-1794631798)，再下载 APKG 发到原私聊。静态核对卡包含 1 张卡片、英美音标和两份有效 WAV。登录恢复成功，修复了发送按钮未就绪时点击静默失败的问题；详细证据见 [真实验收](docs/design.md#真实制卡验收)。PR 等待 review，生产 main 尚未包含这次改动。
+
 密钥配置与目录分工见 [密钥说明](docs/secrets.md)。
