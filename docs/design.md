@@ -1,6 +1,14 @@
 # 设计与开源参考
 
-## 2026-11-13 Telegram 发送制卡文件（issue #6）
+## 2026-11-13 只从 Release 下载并发送 APKG（issue #9，当前行为）
+
+在 GitHub 检索本仓库的 `send_document`，确认 issue #6 已实现 multipart 上传和 `GitHub.download_asset`，本轮直接复用，不新增 SDK，也不复制第三方代码。已有开源比较与来源见下节的 [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) 和 [pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI)。
+
+首次发布、重跑已发布任务、恢复交付记录都使用同一个发送函数：先发结果通知，按任务号查找公开 Release，下载名称为 `LearnWord-<任务号>.apkg` 的资产，再以 multipart 上传到发起任务的 Telegram 聊天。取消首次发送本地产物的旁路和 ZIP 发送循环；ZIP 与 manifest 仍作为 Release 资源保存。没有聊天 ID 或 Bot token 时直接跳过下载和发送。
+
+结果通知失败仍尝试发 APKG。下载、上传失败或超过现有 50 MB 上限时，保留已发布状态，提示 Release 下载和重跑原任务；下载失败时不会拿旧的本地文件冒充下载结果。沿用原有恢复方式，不新增发送状态表或去重逻辑。远端 Tests 在真实制卡、Git 检查点、Release HTTP 服务和 Telegram multipart 服务之间验证完整流程，核对首次和恢复路径都只下载、发送 APKG，且发送字节与 Release 资产一致。
+
+## 2026-11-13 Telegram 发送制卡文件（issue #6，历史方案，已由 issue #9 调整）
 
 先在 GitHub 检索同类实现，比较以下维护活跃、许可明确的候选；不复制第三方源码，也不新增 SDK。
 

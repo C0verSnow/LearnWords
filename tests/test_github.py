@@ -224,7 +224,9 @@ class GitHubTests(unittest.TestCase):
                 self.assertFalse((root / "docs/records/generated.json").exists())
                 self.assertEqual(telegram.documents, [])
                 self.server.upload_status = 201
+                telegram.message_response = (500, {"ok": False})
                 self.assertEqual(run(args, config), 0)
+                telegram.message_response = (200, {"ok": True})
                 records = json.loads((root / "docs/records/generated.json").read_text())
                 self.assertEqual(set(records), {"approach"})
                 manifest = json.loads((root / "docs/manifests/tg-7.json").read_text())
@@ -232,19 +234,22 @@ class GitHubTests(unittest.TestCase):
                 self.assertNotIn("error", manifest)
                 self.assertEqual(manifest["shortfall"], 1)
                 self.assertEqual(set(manifest["failed"]), {"context"})
-                names = ["LearnWord-tg-7.apkg", "LearnWord-tg-7.zip"]
+                names = ["LearnWord-tg-7.apkg"]
+                assets = {asset["name"]: asset["id"] for asset in self.server.release["assets"]}
+                self.assertEqual(set(assets), {names[0], "LearnWord-tg-7.zip", "manifest.json"})
+                self.assertEqual(self.server.downloads, [assets[names[0]]])
                 self.assertEqual([d["name"] for d in telegram.documents], names)
                 for document in telegram.documents:
                     self.assertEqual(document["content"],
-                                     (root / "output/tg-7" / document["name"]).read_bytes())
+                                     self.server.asset_data[assets[document["name"]]])
                     self.assertEqual(document["chat_id"], "9")
                 shutil.rmtree(root / "output")
                 uploads = len(self.server.uploads)
                 self.assertEqual(run(args, config), 0)
                 self.assertEqual(len(self.server.uploads), uploads)
                 self.assertEqual([d["name"] for d in telegram.documents], names * 2)
-                self.assertEqual(telegram.documents[:2], telegram.documents[2:])
-                self.assertEqual(len(self.server.downloads), 2)
+                self.assertEqual(telegram.documents[:1], telegram.documents[1:])
+                self.assertEqual(self.server.downloads, [assets[names[0]]] * 2)
                 # Reproduce a missing final checkpoint after the release became public.
                 manifest["stage"] = "packaged"
                 manifest["error"] = "CalledProcessError"
@@ -260,12 +265,28 @@ class GitHubTests(unittest.TestCase):
                 self.assertNotIn("error", recovered)
                 self.assertEqual(len(self.server.uploads), uploads)
                 self.assertEqual([d["name"] for d in telegram.documents], names * 3)
+                self.assertEqual(self.server.downloads, [assets[names[0]]] * 3)
                 # A failed Telegram upload must not invalidate the published checkpoint.
                 telegram.document_responses[names[0]] = (500, {"ok": False})
                 self.assertEqual(run(args, config), 0)
-                self.assertEqual([d["name"] for d in telegram.documents[-2:]], names)
+                self.assertEqual([d["name"] for d in telegram.documents], names * 4)
+                self.assertIn("Release 下载", telegram.messages[-1]["text"])
+                self.assertIn(recovered["release_url"], telegram.messages[-1]["text"])
                 self.assertEqual(json.loads((root / "docs/manifests/tg-7.json").read_text())["stage"],
                                  "published")
+                self.assertEqual(len(self.server.uploads), uploads)
+                # A failed download must not send the old local APKG or invalidate publication.
+                self.server.download_status = 503
+                self.assertEqual(run(args, config), 0)
+                self.assertEqual([d["name"] for d in telegram.documents], names * 4)
+                self.assertIn("下载、发送失败", telegram.messages[-1]["text"])
+                self.assertEqual(json.loads((root / "docs/manifests/tg-7.json").read_text())["stage"],
+                                 "published")
+                self.server.download_status = 200
+                telegram.document_responses.clear()
+                self.assertEqual(run(args, config), 0)
+                self.assertEqual([d["name"] for d in telegram.documents], names * 5)
+                self.assertEqual(self.server.downloads, [assets[names[0]]] * 6)
                 self.assertEqual(len(self.server.uploads), uploads)
             self.assertEqual(git("status", "--porcelain").strip(), "?? output/")
             self.assertEqual(git("rev-parse", "HEAD").strip(),

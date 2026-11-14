@@ -57,15 +57,14 @@ class TelegramTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join()
 
-    def test_uploads_both_file_types_as_multipart_with_original_bytes(self):
+    def test_uploads_apkg_as_multipart_with_original_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
-            for suffix in ("apkg", "zip"):
-                path = Path(directory) / f"cards.{suffix}"
-                content = b"PK\x03\x04\x00\xff\r\n" + suffix.encode()
-                path.write_bytes(content)
-                send_document("test", "9", path)
-                self.assertEqual(self.server.documents[-1],
-                                 {"chat_id": "9", "name": path.name, "content": content})
+            path = Path(directory) / "cards.apkg"
+            content = b"PK\x03\x04\x00\xff\r\napkg"
+            path.write_bytes(content)
+            send_document("test", "9", path)
+            self.assertEqual(self.server.documents,
+                             [{"chat_id": "9", "name": path.name, "content": content}])
 
     def test_api_http_and_invalid_json_errors_are_sanitized(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -79,7 +78,7 @@ class TelegramTests(unittest.TestCase):
 
     def test_file_limit_and_missing_file_do_not_make_http_requests(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "cards.zip"
+            path = Path(directory) / "cards.apkg"
             with path.open("wb") as stream:
                 stream.truncate(50_000_001)
             with self.assertRaisesRegex(RuntimeError, "50 MB"):
@@ -88,24 +87,6 @@ class TelegramTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Telegram 文件发送失败"):
                 send_document("test", "9", path)
             self.assertEqual(self.server.documents, [])
-
-    def test_delivery_continues_after_summary_and_first_document_fail(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory)
-            files = [output / "cards.apkg", output / "cards.zip"]
-            for path in files:
-                path.write_bytes(path.suffix.encode())
-            self.server.message_response = (500, {"ok": False})
-            self.server.document_responses[files[0].name] = (200, {"ok": False})
-            manifest = {"task_id": "tg-7", "stage": "published", "succeeded": ["approach"],
-                        "failed": {}, "shortfall": 0, "requested": 1,
-                        "release_url": "https://example.test/release"}
-            with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test"}):
-                notify_delivery("9", manifest, None, output, files)
-            self.assertEqual([d["name"] for d in self.server.documents], [p.name for p in files])
-            self.assertIn("Release 下载", self.server.messages[-1]["text"])
-            self.assertIn(manifest["release_url"], self.server.messages[-1]["text"])
-            self.assertEqual(manifest["stage"], "published")
 
     def test_manual_run_without_token_or_chat_skips_file_delivery(self):
         manifest = {"task_id": "tg-7", "stage": "published", "succeeded": [], "failed": {},

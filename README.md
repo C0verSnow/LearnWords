@@ -1,12 +1,12 @@
 # LearnWords
 
-通过 Telegram 指定数量，在 GitHub Actions 用 DrissionPage 操作豆包，生成带英美音标和发音的 Anki 卡包，发布到 GitHub Releases，并把 APKG 和 ZIP 文件发回 Telegram。只负责制卡，不记录学习进度、不安排复习。
+通过 Telegram 指定数量，在 GitHub Actions 用 DrissionPage 操作豆包，生成带英美音标和发音的 Anki 卡包，发布到 GitHub Releases，再从对应 Release 下载 APKG 并发回 Telegram，用户可以直接在聊天里下载。只负责制卡，不记录学习进度、不安排复习。
 
 ```text
 Telegram /make 20 random
   → Vercel /api/telegram（鉴权、参数检查、持久化请求去重）
   → GitHub Actions（选词、豆包、音标和音频、Anki、发布）
-  → Release（APKG、ZIP、manifest）→ Telegram 结果通知 + APKG 文件 + ZIP 文件
+  → Release（APKG、ZIP、manifest）→ Runner 下载对应 APKG → Telegram 结果通知 + APKG 文件
 ```
 
 ## 当前交付边界
@@ -95,13 +95,13 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 - 每个词最多尝试两次，可在 `config.yaml` 调整为 1–3 次。登录失效立即停止后续豆包请求，不反复登录。
 - 已保存的解释会被复用，发音重新生成，卡片 GUID 仅由系统版本与单词决定。模型和牌组 ID 固定，重导入时须核对 Anki 的更新选项。
 - 如果 Release 已公开但最终记录未提交，原任务重跑会按打包检查点补写交付记录，保持已发布单词清单，不扩大这次卡包的成功数量。
-- 在 Actions 重跑失败任务，或手动运行 **Make cards**，填写原 `request_id`，即可复用原选词清单。已发布任务重跑会反馈原链接，并从 Release 取回原 APKG 和 ZIP 补发，不重新制卡或重建 Release；两个文件都会重发，可能重复收到已成功发送的文件。
+- 在 Actions 重跑失败任务，或手动运行 **Make cards**，填写原 `request_id`，即可复用原选词清单。已发布任务重跑会反馈原链接，并从对应 Release 取回原 APKG 补发，不重新制卡或重建 Release；可能重复收到已成功发送的 APKG。
 - 同一个任务号不会补做已经发布的部分失败词；需要补做时发起新任务，未交付词仍可选。改 count/mode 不会改变已经创建的任务；要新选词请使用新任务号。
 - APKG 或 Release 失败时保留成功解释；Release 上传失败保留草稿，重跑时重新上传。已公开的同任务 Release 保持原样。
 - 如果仓库检查点推送失败，从 Actions 的 `learnword-<run_id>` artifact 取回 `docs/` 结果提交后，再重跑原任务。Artifact 保留 14 天；不会包含会话文件或浏览器用户目录。
 - Webhook 先落请求凭证，再触发工作流。若 GitHub 未确认触发，Bot 会返回任务号；用 `/status` 确认后手动补跑该任务号。凭证会保留，避免网络超时后 Telegram 重投导致重复排队；服务在这两步之间中断也按此方法恢复。
-- 制卡发布并保存交付记录后，先发结果通知，再分别上传 APKG 和 ZIP 到发起任务的 Telegram 聊天；部分成功的卡包也会发送。手动任务使用 `chat_id` 输入或 `TELEGRAM_CHAT_ID`，没有聊天 ID 或 Bot token 时跳过通知和发文件。
-- Telegram 通知或某个文件发送失败，不撤回 Release，也不把已发布任务改成制卡失败；仍会尝试另一个文件。Telegram 公共 Bot API 单文件上限为 50 MB，本项目对超过 50,000,000 字节的文件跳过上传并提示 Release 下载。其他发送失败也会提示下载和重跑补发；聊天不可用时可在 Actions 日志和 `/release` 查看成果。无需新增环境变量或权限。
+- 制卡发布并保存交付记录后，先发结果通知，再通过 GitHub 资产下载接口取回当前任务的 APKG，以文件上传到发起任务的 Telegram 聊天；首次发送和重跑补发走相同路径，部分成功的卡包也会发送。Telegram 只发送 APKG，ZIP 和 manifest 继续保存在 Release。手动任务使用 `chat_id` 输入或 `TELEGRAM_CHAT_ID`，没有聊天 ID 或 Bot token 时跳过通知和发文件。
+- Telegram 结果通知失败时仍会尝试发送 APKG；APKG 下载或发送失败不撤回 Release，也不把已发布任务改成制卡失败。Telegram 公共 Bot API 单文件上限为 50 MB，本项目对超过 50,000,000 字节的文件跳过上传并提示 Release 下载。其他下载或发送失败也会提示下载和重跑补发；聊天不可用时可在 Actions 日志和 `/release` 查看成果。无需新增环境变量或权限。
 
 ## 音标与媒体
 
@@ -111,7 +111,7 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 ## 验证
 
-按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表导入、3592 词完整性和短语选词，并通过 Runner 内 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点，以及 Telegram 两种文件的 multipart 上传内容、失败隔离、大小限制和从 Release 补发。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号；Telegram 测试不联系真实 Bot 或发送私聊。
+按仓库约定，不执行本地构建、编译或测试。远端 **Tests** 使用真实 eSpeak NG、genanki、SQLite 和 ZIP 检查双口音媒体、稳定 GUID、字段转义、词表导入、3592 词完整性和短语选词，并通过 Runner 内 HTTP 测试服务检查 GitHub 请求去重、发布失败、恢复和真实 Git 检查点，以及 APKG 的 multipart 上传内容、失败隔离和大小限制。首次发送、重跑补发和交付记录恢复都核对只下载对应 Release 的 APKG、只发送 APKG；下载失败时不发送旧的本地文件。浏览器测试在 Runner 的 Chrome 上操作测试页，不使用豆包账号；Telegram 测试不联系真实 Bot 或发送私聊。
 
 真实上线验收清单在 [会话实验](docs/session-research.md)。设计比较和开源来源见 [参考设计](docs/design.md)。
 
