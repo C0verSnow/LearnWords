@@ -172,16 +172,7 @@ class BrowserTests(unittest.TestCase):
                         self.assertEqual(browser.page.local_storage("local-probe"), "value")
                         self.assertIn("probe", [cookie["name"] for cookie in browser.page.cookies()])
                         browser.page.ele(config["input"]).input("旧草稿")
-                        try:
-                            self.assertEqual(browser.generate("approach")["Word"], "approach")
-                        except TimeoutError:
-                            state = browser.page.run_js("""return {
-                                submitted: window.submittedText,
-                                answer: document.querySelector('#answer').textContent,
-                                editor: document.querySelector('#editor').innerText
-                            };""")
-                            print("[DEBUG-issue9] " + json.dumps(state, ensure_ascii=False), flush=True)
-                            raise
+                        self.assertEqual(browser.generate("approach")["Word"], "approach")
                         submitted = browser.page.run_js("return window.submittedText")
                         self.assertNotIn("旧草稿", submitted)
                         self.assertIn("approach", submitted)

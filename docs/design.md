@@ -8,6 +8,12 @@
 
 结果通知失败仍尝试发 APKG。下载、上传失败或超过现有 50 MB 上限时，保留已发布状态，提示 Release 下载和重跑原任务；下载失败时不会拿旧的本地文件冒充下载结果。沿用原有恢复方式，不新增发送状态表或去重逻辑。远端 Tests 在真实制卡、Git 检查点、Release HTTP 服务和 Telegram multipart 服务之间验证完整流程，核对首次和恢复路径都只下载、发送 APKG，且发送字节与 Release 资产一致。
 
+### 真实浏览器发送按钮就绪问题
+
+用户报告 `authenticated` 登录检查失败后，真实 Probe 43557857104 在原配置下确认登录恢复成功，但查询超时。当前私有截图显示提示词仍在编辑器里，发送没有生效，因此没有凭此前提示重做登录或更换账号选择器。
+
+在 GitHub 检索 [DrissionPage 等待与点击实现](https://github.com/g1879/DrissionPage/blob/master/DrissionPage/_units/clicker.py)，再读取 [固定 4.1.1.4 发布包](https://pypi.org/project/DrissionPage/4.1.1.4/) 核对：`click()` 默认等待 1.5 秒，按钮不可用时默认返回 `False`；旧代码忽略结果，随后只等回答。使用真实 Chrome 测试页，在输入后延迟 2 秒启用按钮复现。发送使用现有原生点击，等待 15 秒并检查结果；没有完成点击时明确报“消息未发送”，不改为 JavaScript 点击或自动连点，也不新增依赖。
+
 ## 2026-11-13 Telegram 发送制卡文件（issue #6，历史方案，已由 issue #9 调整）
 
 先在 GitHub 检索同类实现，比较以下维护活跃、许可明确的候选；不复制第三方源码，也不新增 SDK。
