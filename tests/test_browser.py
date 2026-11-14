@@ -41,6 +41,12 @@ class BrowserPage(BaseHTTPRequestHandler):
 
           }
         };
+        document.querySelector('#editor').oninput = () => {
+          const send = document.querySelector('#send');
+          send.disabled = true;
+          clearTimeout(window.sendReady);
+          window.sendReady = setTimeout(() => { send.disabled = false; }, 2000);
+        };
         document.querySelector('#send').onclick = () => {
           window.submittedText = document.querySelector('#editor').innerText;
           document.querySelector('#answer').textContent = RESPONSE;
