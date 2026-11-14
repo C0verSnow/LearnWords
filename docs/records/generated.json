@@ -58,5 +58,30 @@
     "task_id": "verify-apkg-1794631798",
     "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-apkg-1794631798",
     "generated_at": "2026-11-14T04:52:53.822739+00:00"
+  },
+  "latitude": {
+    "task_id": "tg-654645734",
+    "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645734",
+    "generated_at": "2026-11-14T05:15:33.002337+00:00"
+  },
+  "horizon": {
+    "task_id": "tg-654645734",
+    "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645734",
+    "generated_at": "2026-11-14T05:15:33.002337+00:00"
+  },
+  "altitude": {
+    "task_id": "tg-654645734",
+    "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645734",
+    "generated_at": "2026-11-14T05:15:33.002337+00:00"
+  },
+  "disaster": {
+    "task_id": "tg-654645734",
+    "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645734",
+    "generated_at": "2026-11-14T05:15:33.002337+00:00"
+  },
+  "mishap": {
+    "task_id": "tg-654645734",
+    "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645734",
+    "generated_at": "2026-11-14T05:15:33.002337+00:00"
   }
 }
