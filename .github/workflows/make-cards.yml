@@ -7,7 +7,7 @@ on:
       count:
         description: Number of cards (1–100)
         required: true
-        default: '20'
+        default: '5'
       mode:
         description: Word selection
         type: choice

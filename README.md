@@ -19,13 +19,15 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，Gi
 
 | 命令 | 用途 |
 | --- | --- |
+| `/make` | 默认顺序生成 5 张卡片，等同于 `/make 5` |
+| `/make 3`、`/make 10` | 按指定数量顺序制卡 |
 | `/make 20` 或 `/make 20 next` | 顺序选择未成功交付的单词 |
 | `/make 20 random` | 随机选词 |
 | `/status` | 当前私聊最近任务的 Actions 状态与链接 |
 | `/release` | 仓库最新公开 Release |
 | `/help` | 帮助 |
 
-只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。默认每次最多 100 词，可通过 `MAX_CARDS` 调低。少于请求数量时按剩余数量处理，并报告缺额。词条支持英文字母、内部短横线、撇号或词间空格（例如 `carbon dioxide`）；空行、无效行和重复行会被忽略。
+只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。不填数量默认 5 张；填写数量时按指定值处理，Actions 手动制卡的默认值也为 5。默认每次最多 100 词，可通过 `MAX_CARDS` 调低；上限低于 5 时，裸 `/make` 会提示数量范围，请显式填写范围内的数量。少于请求数量时按剩余数量处理，并报告缺额。词条支持英文字母、内部短横线、撇号或词间空格（例如 `carbon dioxide`）；空行、无效行和重复行会被忽略。
 
 ## 配置顺序
 

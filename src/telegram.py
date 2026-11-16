@@ -2,7 +2,7 @@ import os
 
 import requests
 
-HELP = "/make <数量> [next|random]：制卡\n/status：任务状态\n/release：最新卡包\n/help：帮助"
+HELP = "/make [数量] [next|random]：制卡，不填数量默认 5 张\n/status：任务状态\n/release：最新卡包\n/help：帮助"
 API_URL = "https://api.telegram.org"
 
 
