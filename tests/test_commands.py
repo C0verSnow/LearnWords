@@ -5,11 +5,24 @@ from src.session import validate_session
 
 
 class CommandTests(unittest.TestCase):
+    def test_make_defaults_to_five_and_keeps_explicit_counts(self):
+        for text, count, mode in (("/make", 5, "next"),
+                                  (" /make@MyBot \n", 5, "next"),
+                                  ("/make 3", 3, "next"),
+                                  ("/make 10", 10, "next"),
+                                  ("/make 3 random", 3, "random")):
+            with self.subTest(text=text):
+                command = parse_command(text, 100)
+                self.assertEqual((command.name, command.count, command.mode), ("make", count, mode))
+        with self.assertRaisesRegex(ValueError, "1–4"):
+            parse_command("/make", 4)
+        self.assertEqual(parse_command("/make 3", 4).count, 3)
+
     def test_commands(self):
         self.assertEqual(parse_command("/make 20", 100).mode, "next")
         self.assertEqual(parse_command("/make@MyBot 5 random", 100).count, 5)
         for text in ("/make 0", "/make -1", "/make 101", "/make 1.5", "/make 2 unknown",
-                     "/make", "/make 1 next extra", "/status extra", "/make 999999999999999999"):
+                     "/make random", "/make 1 next extra", "/status extra", "/make 999999999999999999"):
             with self.subTest(text=text), self.assertRaises(ValueError):
                 parse_command(text, 100)
         for name in ("status", "release", "help"):
