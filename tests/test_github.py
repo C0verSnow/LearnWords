@@ -129,7 +129,7 @@ class GitHubTests(unittest.TestCase):
         thread = threading.Thread(target=webhook.serve_forever, daemon=True)
         thread.start()
         update = {"update_id": 7, "message": {"from": {"id": 9}, "chat": {"id": 9, "type": "private"},
-                                              "text": "/make 5"}}
+                                              "text": "/make"}}
         url = f"http://127.0.0.1:{webhook.server_port}/api/telegram"
         env = {"TELEGRAM_WEBHOOK_SECRET": "secret", "TELEGRAM_ALLOWED_USER_IDS": "9",
                "TELEGRAM_BOT_TOKEN": "test", "GITHUB_TOKEN": "test", "GITHUB_REPOSITORY": "owner/repo",
@@ -141,12 +141,19 @@ class GitHubTests(unittest.TestCase):
                 headers = {"X-Telegram-Bot-Api-Secret-Token": "secret"}
                 self.assertEqual(requests.post(url, json=update, headers=headers, timeout=10).status_code, 200)
                 self.assertIn("已接收", messages.call_args.args[2])
+                self.assertEqual(self.server.dispatches[0]["inputs"]["count"], "5")
+                self.server.request_file = False
+                update["update_id"] = 8
+                update["message"]["text"] = "/make 3"
+                self.assertEqual(requests.post(url, json=update, headers=headers, timeout=10).status_code, 200)
+                self.assertIn("已接收", messages.call_args.args[2])
+                self.assertEqual(self.server.dispatches[1]["inputs"]["count"], "3")
                 update["message"]["text"] = "/make 0"
                 self.assertEqual(requests.post(url, json=update, headers=headers, timeout=10).status_code, 200)
                 self.assertIn("数量", messages.call_args.args[2])
                 update["message"]["from"]["id"] = 10
                 self.assertEqual(requests.post(url, json=update, headers=headers, timeout=10).status_code, 403)
-                self.assertEqual(len(self.server.dispatches), 1)
+                self.assertEqual(len(self.server.dispatches), 2)
         finally:
             webhook.shutdown()
             webhook.server_close()

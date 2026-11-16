@@ -164,3 +164,25 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 来源：[Chromium 模型仓库路径](https://chromium.googlesource.com/chromium/src/+/9f653591077777c26d771184a67d647258fa7478/chrome/browser/optimization_guide/chrome_browser_main_extra_parts_optimization_guide.cc)、[Wasm TTS 组件安装器](https://github.com/chromium/chromium/blob/main/chrome/browser/component_updater/wasm_tts_engine_component_installer.cc)。Supabase Free 单文件上限为 [50 MB](https://supabase.com/docs/guides/storage/uploads/file-limits)，不通过关闭安全数据库或删网站会话数据挤进限制。
 
 富文本残留回归在远端 Tests 43068013679 再次失败。固定 DrissionPage 4.1.1.4 的 clear() 调用 DOM.focus 后用 Ctrl+A/Delete，实际 contenteditable 仍可能拼接旧草稿。按标准 DOM Range 只选择该编辑器的内容，再用原生 Backspace 删除，保持网站收到正常输入事件；不直接改 textContent，也不改网站验证逻辑。继续使用上表已检索的 DrissionPage，不引入依赖。
+
+
+## Issue #11：默认制卡数量与上游配置漂移
+
+`/make` 按 `/make 5` 解析，显式数量和 next/random 沿用原有规则；默认值仍经过 MAX_CARDS 上限校验。手动 Make cards 的默认数量同步为 5。命令测试与真实 HTTP Webhook 测试覆盖默认 5 张和显式数量，不启动新的解析器或额外服务。
+
+[原失败任务 43792473303](https://github.com/C0verSnow/LearnWords/actions/runs/43792473303) 与 [feature 分支复现 43794590784](https://github.com/C0verSnow/LearnWords/actions/runs/43794590784) 都在网络预检失败，生成步骤尚未开始。只读 SSH 检查确认：245 的 Tailscale 正常提供出口，但访问 www.cloudflare.com 的实际出口为 US；豆包和检查域名返回 198.18 假地址。OpenClash 当前运行配置只保留两条 245 的 Tailscale UDP 直连规则，缺少此前的 15 条域名直连规则。旧 reliability 脚本仍含真实 DNS 例外，但当前覆写入口没有调用它，运行配置也没有这些例外。尚未确定规则丢失的具体操作，不能仅凭文件时间归因。
+
+这是预期配置与实际配置不一致的故障。通用处理顺序：确定唯一配置来源，通过正式持久入口生成，核对运行配置，再用真实 DNS、目标 HTTPS 出口与完整制卡流程验收；失败时保留校验并按备份回滚，不能删除 IP/CN 检查来让任务表面成功。
+
+| 方案 | 取舍 |
+| --- | --- |
+| 恢复精确域名规则 | 保留 245 的其他代理需求；需维护清单，相关真实 DNS 例外影响其他设备对这些域名的解析。最小变更是追加现有自定义规则和覆写入口，保留新的 UDP 与嗅探配置。 |
+| 245 整机绕过 OpenClash | 可使用已有设备访问控制，减少代理与 DNS 分流耦合；245 其他网站也将直连，需要先确认它是否仍需代理。 |
+| 制卡专用直连网络 | 与家用代理配置隔离；需要独立网关或网络环境，超出本轮最小修复范围，不能未经用户选择直接实施。 |
+
+本轮 GitHub 检索核对 [tailscale/tailscale](https://github.com/tailscale/tailscale)（39,174 stars，BSD-3-Clause，2026-11-15 有提交）与 [vernesong/OpenClash](https://github.com/vernesong/OpenClash)（28,219 stars，MIT，2026-11-15 有提交），并读取有维护者回复的 [Tailscale #16286](https://github.com/tailscale/tailscale/issues/16286) 和 [OpenClash #5310](https://github.com/vernesong/OpenClash/issues/5310)。Tailscale 管理内核 TUN 与路由；OpenClash 继续使用已有 Mihomo 内核和 Ruby 覆写，不增加第二个代理或新依赖。这些上游讨论只用于确认设计边界，不代表本次命中了同一个上游缺陷，也未复制其代码。
+
+参考 [OpenClash 自定义覆写示例](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/root/etc/openclash/custom/openclash_custom_overwrite.sh)、[设备访问控制实现](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/luasrc/model/cbi/openclash/settings.lua)、[Mihomo DNS 配置](https://github.com/MetaCubeX/Meta-Docs/blob/main/docs/config/dns/index.md) 与 [预期状态和实际状态的核对思路](https://kubernetes.io/docs/concepts/architecture/controller/)。用户明确允许 245 本机方案不适用时修改路由器；真实 IP 直连也被上游送往 US 后，已在告知用户的情况下按备选方案修复两份路由器持久源文件，保留原 UDP 与嗅探配置。只有 dns、rules 两项运行配置变化，出口与真实 DNS 已恢复；备份和回滚见 [实际修复记录](openclash-245-split.md#2026-11-15issue-11-配置漂移修复)。不直接手改 OpenClash 生成的 config.yaml。
+
+
+Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_openclash_override.js) 产出独立 OpenClash 原生片段；原始配置恢复为用户指定的较早备份，加载过程只修改生成的运行配置。原自定义规则列表已撤回本轮直接追加，原覆写入口只新增加载独立片段，不在路由器安装 Node。[最终方案、原始文件哈希和验收](openclash-245-split.md#最终方案js-生成独立覆写原始配置恢复)记录了 23 项远端测试与真实 network Probe 的通过结果。

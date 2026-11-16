@@ -19,13 +19,15 @@ Telegram、Vercel Webhook 和私有 Supabase 已配置。当前恢复豆包，Gi
 
 | 命令 | 用途 |
 | --- | --- |
+| `/make` | 默认顺序生成 5 张卡片，等同于 `/make 5` |
+| `/make 3`、`/make 10` | 按指定数量顺序制卡 |
 | `/make 20` 或 `/make 20 next` | 顺序选择未成功交付的单词 |
 | `/make 20 random` | 随机选词 |
 | `/status` | 当前私聊最近任务的 Actions 状态与链接 |
 | `/release` | 仓库最新公开 Release |
 | `/help` | 帮助 |
 
-只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。默认每次最多 100 词，可通过 `MAX_CARDS` 调低。少于请求数量时按剩余数量处理，并报告缺额。词条支持英文字母、内部短横线、撇号或词间空格（例如 `carbon dioxide`）；空行、无效行和重复行会被忽略。
+只接受 `TELEGRAM_ALLOWED_USER_IDS` 中的用户私聊。不填数量默认 5 张；填写数量时按指定值处理，Actions 手动制卡的默认值也为 5。默认每次最多 100 词，可通过 `MAX_CARDS` 调低；上限低于 5 时，裸 `/make` 会提示数量范围，请显式填写范围内的数量。少于请求数量时按剩余数量处理，并报告缺额。词条支持英文字母、内部短横线、撇号或词间空格（例如 `carbon dioxide`）；空行、无效行和重复行会被忽略。
 
 ## 配置顺序
 
@@ -119,3 +121,9 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 2026-11-13 已在 feature 分支完成一次 [真实制卡与 Telegram APKG 发送](https://github.com/C0verSnow/LearnWords/actions/runs/43558629987)：在线生成 `longitude`，发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-apkg-1794631798)，再下载 APKG 发到原私聊。静态核对卡包含 1 张卡片、英美音标和两份有效 WAV。登录恢复成功，修复了发送按钮未就绪时点击静默失败的问题；详细证据见 [真实验收](docs/design.md#真实制卡验收)。PR 等待 review，生产 main 尚未包含这次改动。
 
 密钥配置与目录分工见 [密钥说明](docs/secrets.md)。
+
+
+2026-11-15 的 Issue #11 验收：`/make` 默认 5 张，显式数量仍有效。[远端 Tests](https://github.com/C0verSnow/LearnWords/actions/runs/43795260065) 全部 22 项通过；[真实 5 张制卡](https://github.com/C0verSnow/LearnWords/actions/runs/43795583719) 成功发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-issue11-make5)，5 张成功、0 失败、0 缺额。下载静态核对 APKG 含 5 条笔记、5 张卡和 10 段有效英美 WAV，ZIP 内外 APKG 相同，SHA-256 与 Release digest 一致。工作流使用既有私聊配置完成交付，未报 Telegram 通知或文件发送失败。故障根因是 OpenClash 运行规则与预期不一致；按用户允许的备选方案修复路由器两份持久源文件，245 未改配置。[修复、备份和回滚](docs/openclash-245-split.md#2026-11-15issue-11-配置漂移修复)已记录。PR #12 等待 review，裸 `/make` 新行为需合并并按现有部署流程发布后生效。
+
+
+按 Issue #11 后续要求，路由器最终使用 [独立 JS 生成覆写](scripts/generate_openclash_override.js)，原始 YAML 已恢复为用户指定备份，加载层只修改生成的运行配置；原自定义规则文件已恢复，其他来源规则保持不变。[最终 23 项 Tests](https://github.com/C0verSnow/LearnWords/actions/runs/43796740551) 与 [真实 network Probe](https://github.com/C0verSnow/LearnWords/actions/runs/43796883049) 均通过。生成方式、哈希、备份和回滚见 [最终说明](docs/openclash-245-split.md#最终方案js-生成独立覆写原始配置恢复)。

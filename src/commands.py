@@ -41,14 +41,15 @@ def parse_command(text, max_cards):
     name = parts[0].split("@", 1)[0]
     if name in ("/help", "/start", "/status", "/release") and len(parts) == 1:
         return Command("help" if name == "/start" else name[1:])
-    if name != "/make" or len(parts) not in (2, 3):
+    if name != "/make" or len(parts) not in (1, 2, 3):
         raise ValueError(HELP)
-    if not re.fullmatch(r"[0-9]{1,3}", parts[1]) or not 1 <= int(parts[1]) <= max_cards:
+    count = parts[1] if len(parts) > 1 else "5"
+    if not re.fullmatch(r"[0-9]{1,3}", count) or not 1 <= int(count) <= max_cards:
         raise ValueError(f"数量请填 1–{max_cards} 的整数。")
     mode = parts[2] if len(parts) == 3 else "next"
     if mode not in ("next", "random"):
         raise ValueError("选词方式只能填 next 或 random。")
-    return Command("make", int(parts[1]), mode)
+    return Command("make", int(count), mode)
 
 
 def parse_update(update, allowed_ids):
