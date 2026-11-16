@@ -103,3 +103,45 @@ cp -p /root/learnwords-issue11-backup-1794798014/openclash_custom_overwrite.sh /
 完整验收：[Make cards 43795583719](https://github.com/C0verSnow/LearnWords/actions/runs/43795583719) 从新的 Runner 恢复原登录，在线生成 catastrophic、calamity、endanger、jeopardise、destructive，5/5 成功，清单为 published，failed 为空且 shortfall 为 0。原登录无需重做，加密档案正常保存，路由清理与官方 Action 退出均成功。既有私聊配置非空，通知及 APKG 交付未出现失败提示。
 
 [Release](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-issue11-make5) 的 APKG 为 490,930 字节，SHA-256 为 `b176fdec1e1d25f6710f828fe3def6eace5aede0f5034f49b6db775f5bf724c6`，与发布 digest 一致；静态读取确认 5 条笔记、5 张卡片、10 段 22050 Hz 的有效 WAV，ZIP 内外 APKG 完全相同。Anki 客户端导入和实际收听仍由用户另机验收，本机没有编译、构建或运行测试。
+
+
+## 最终方案：JS 生成独立覆写，原始配置恢复
+
+用户追加要求：用 JS 承载必要规则，不直接修改原始配置，并明确选用路由器较早备份 `/root/openclash-backup-1794795491/4-config.yaml`。最终方案取代上文首次修复的直接追加方式。
+
+已将 `/etc/openclash/config/config.yaml` 恢复为该备份，SHA-256 为 `6fb6c31f2d9563250e943e102350248ee263ca98f9ec7439dab3f88720a058a1`，重载前后均与备份逐字节一致。此前的原始配置与这份备份只有 dns.nameserver 不同；本轮首次修复并未直接修改原始配置，这次恢复按用户指定版本执行。
+
+规则来源现在只有 [JS 生成器](../scripts/generate_openclash_override.js) 和仓库域名清单：
+
+```text
+configs/doubao-domains.txt
+  -> scripts/generate_openclash_override.js
+  -> 路由器 /etc/openclash/custom/learnwords-override.sh
+  -> OpenClash 正式覆写入口
+  -> 生成的运行配置
+```
+
+路由器没有 Node/QuickJS；已有 ucode 不是完整 JavaScript，不能直接运行 Node 脚本。本机已有 Node 只用于生成文本片段，路由器沿用原生 shell/Ruby 加载结果，不安装新运行时、不修改 init 脚本。JS 不接收或重写原始 YAML，只输出四条官方 helper 调用：前置 15 条精确来源规则、规则去重、追加 15 个真实 DNS 例外、DNS 例外去重。
+
+生成命令：
+
+```sh
+node scripts/generate_openclash_override.js > /tmp/learnwords-override.sh
+```
+
+生成结果部署到 `/etc/openclash/custom/learnwords-override.sh`。现有 `/etc/openclash/custom/openclash_custom_overwrite.sh` 只在原有 sniffer 覆写之后、exit 0 之前新增加载入口：
+
+```sh
+. /etc/openclash/custom/learnwords-override.sh
+```
+
+OpenClash 提供的 CONFIG_FILE 在此指向生成过程的临时文件；helper 调用由原生覆写机制记录并应用，不能把原始 YAML 路径手工传入替代它。`openclash_custom_rules.list` 已恢复为本轮修改前的文件，里面仍保留原两条 UDP 规则，不再直接存放本轮的 15 条域名规则。原有 sniffer 覆写保持不变。
+
+切换前备份在路由器私有目录 `/root/learnwords-js-backup-1794798769`，包括当时两份入口文件、UCI、原始 YAML 与运行 YAML。重载后已回读确认：原始 YAML 哈希未变；17 条 245 规则完整，其他来源规则逐项一致；真实 DNS 例外齐全；与切换前相比运行 DNS 只改变了用户要求恢复的 nameserver。
+
+若要撤回最终 JS 方案到本轮最初状态，先确认后来没有其他改动，再恢复 `/root/learnwords-issue11-backup-1794798014` 中两份原入口文件，删除新增的 `learnwords-override.sh`，通过正常 OpenClash restart 重新生成。原始 YAML 继续保留用户指定的备份版本；恢复源码与恢复生成文件是两件事，不直接覆盖运行 config.yaml。
+
+实现依据仍为 [OpenClash 官方 helper 示例](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/root/etc/openclash/custom/openclash_custom_overwrite.sh) 与其 [加载流程](https://github.com/vernesong/OpenClash/blob/master/luci-app-openclash/root/etc/init.d/openclash)。JS 是规则生成源，shell/Ruby 是既有加载机制，未复制第三方实现。
+
+
+最终方案验收：[Tests 43796740551](https://github.com/C0verSnow/LearnWords/actions/runs/43796740551) 全部 23 项通过，新增用例实际运行 JS 生成器，核对输出只包含来源限定规则和 DNS 覆写，并检查生成 shell 语法。[network Probe 43796883049](https://github.com/C0verSnow/LearnWords/actions/runs/43796883049) 在原始 YAML 恢复、独立片段生效后通过目标 TUN 实际 CN 出口、普通流量原出口、真实 DNS、非目标服务原路由及豆包 HTTP 检查，随后正常清理。此前 5 张完整制卡和卡包静态验收仍见上文；切换 JS 层后没有再生成或发送额外卡包。

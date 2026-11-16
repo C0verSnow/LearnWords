@@ -124,3 +124,6 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 
 
 2026-11-15 的 Issue #11 验收：`/make` 默认 5 张，显式数量仍有效。[远端 Tests](https://github.com/C0verSnow/LearnWords/actions/runs/43795260065) 全部 22 项通过；[真实 5 张制卡](https://github.com/C0verSnow/LearnWords/actions/runs/43795583719) 成功发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-issue11-make5)，5 张成功、0 失败、0 缺额。下载静态核对 APKG 含 5 条笔记、5 张卡和 10 段有效英美 WAV，ZIP 内外 APKG 相同，SHA-256 与 Release digest 一致。工作流使用既有私聊配置完成交付，未报 Telegram 通知或文件发送失败。故障根因是 OpenClash 运行规则与预期不一致；按用户允许的备选方案修复路由器两份持久源文件，245 未改配置。[修复、备份和回滚](docs/openclash-245-split.md#2026-11-15issue-11-配置漂移修复)已记录。PR #12 等待 review，裸 `/make` 新行为需合并并按现有部署流程发布后生效。
+
+
+按 Issue #11 后续要求，路由器最终使用 [独立 JS 生成覆写](scripts/generate_openclash_override.js)，原始 YAML 已恢复为用户指定备份，加载层只修改生成的运行配置；原自定义规则文件已恢复，其他来源规则保持不变。[最终 23 项 Tests](https://github.com/C0verSnow/LearnWords/actions/runs/43796740551) 与 [真实 network Probe](https://github.com/C0verSnow/LearnWords/actions/runs/43796883049) 均通过。生成方式、哈希、备份和回滚见 [最终说明](docs/openclash-245-split.md#最终方案js-生成独立覆写原始配置恢复)。
