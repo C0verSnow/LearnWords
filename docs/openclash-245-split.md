@@ -98,3 +98,8 @@ cp -p /root/learnwords-issue11-backup-1794798014/openclash_custom_overwrite.sh /
 ```
 
 不要恢复旧运行 config.yaml 替代正式重载，也不要为了通过制卡检查删除 IP/CN 校验。
+
+
+完整验收：[Make cards 43795583719](https://github.com/C0verSnow/LearnWords/actions/runs/43795583719) 从新的 Runner 恢复原登录，在线生成 catastrophic、calamity、endanger、jeopardise、destructive，5/5 成功，清单为 published，failed 为空且 shortfall 为 0。原登录无需重做，加密档案正常保存，路由清理与官方 Action 退出均成功。既有私聊配置非空，通知及 APKG 交付未出现失败提示。
+
+[Release](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-issue11-make5) 的 APKG 为 490,930 字节，SHA-256 为 `b176fdec1e1d25f6710f828fe3def6eace5aede0f5034f49b6db775f5bf724c6`，与发布 digest 一致；静态读取确认 5 条笔记、5 张卡片、10 段 22050 Hz 的有效 WAV，ZIP 内外 APKG 完全相同。Anki 客户端导入和实际收听仍由用户另机验收，本机没有编译、构建或运行测试。

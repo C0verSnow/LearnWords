@@ -121,3 +121,6 @@ output/<task>/                APKG、ZIP、音频和清单，不进 Git
 2026-11-13 已在 feature 分支完成一次 [真实制卡与 Telegram APKG 发送](https://github.com/C0verSnow/LearnWords/actions/runs/43558629987)：在线生成 `longitude`，发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-apkg-1794631798)，再下载 APKG 发到原私聊。静态核对卡包含 1 张卡片、英美音标和两份有效 WAV。登录恢复成功，修复了发送按钮未就绪时点击静默失败的问题；详细证据见 [真实验收](docs/design.md#真实制卡验收)。PR 等待 review，生产 main 尚未包含这次改动。
 
 密钥配置与目录分工见 [密钥说明](docs/secrets.md)。
+
+
+2026-11-15 的 Issue #11 验收：`/make` 默认 5 张，显式数量仍有效。[远端 Tests](https://github.com/C0verSnow/LearnWords/actions/runs/43795260065) 全部 22 项通过；[真实 5 张制卡](https://github.com/C0verSnow/LearnWords/actions/runs/43795583719) 成功发布 [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-verify-issue11-make5)，5 张成功、0 失败、0 缺额。下载静态核对 APKG 含 5 条笔记、5 张卡和 10 段有效英美 WAV，ZIP 内外 APKG 相同，SHA-256 与 Release digest 一致。工作流使用既有私聊配置完成交付，未报 Telegram 通知或文件发送失败。故障根因是 OpenClash 运行规则与预期不一致；按用户允许的备选方案修复路由器两份持久源文件，245 未改配置。[修复、备份和回滚](docs/openclash-245-split.md#2026-11-15issue-11-配置漂移修复)已记录。PR #12 等待 review，裸 `/make` 新行为需合并并按现有部署流程发布后生效。
