@@ -1,0 +1,24 @@
+{
+  "task_id": "verify-issue11-make5",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "catastrophic",
+    "calamity",
+    "endanger",
+    "jeopardise",
+    "destructive"
+  ],
+  "created_at": "2026-11-16T03:02:00.675674+00:00",
+  "stage": "packaged",
+  "failed": {},
+  "succeeded": [
+    "catastrophic",
+    "calamity",
+    "endanger",
+    "jeopardise",
+    "destructive"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
