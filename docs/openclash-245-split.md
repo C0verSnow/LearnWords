@@ -68,3 +68,33 @@ OpenClash 已完成一次正常重启，生成的运行配置有 46 条规则，
 - [Mihomo 官方规则说明](https://wiki.metacubex.one/config/rules/)：使用 AND、SRC-IP-CIDR、DOMAIN-SUFFIX 和 DOMAIN。
 - [Mihomo DNS 配置](https://wiki.metacubex.one/config/dns/)：仅对需要真实地址的目标设置 fake-ip-filter。
 - [Mihomo Linux 接口排除问题 #2605](https://github.com/MetaCubeX/mihomo/issues/2605)：维护者有回复并关联修复，报告者已确认修复。此问题涉及另一种 TUN 部署方式，不是本次路由器分流故障的原因。
+
+
+## 2026-11-15：Issue #11 配置漂移修复
+
+原任务 43792473303 和 feature 分支复现 43794590784 都在出口检查失败。只读检查发现：路由器当前运行配置中，此前的 15 条 LearnWords 域名直连规则和真实 DNS 例外已不在；旧 reliability.rb 仍保存 DNS 例外，但当前自定义覆写入口没有调用该脚本。不能仅凭文件时间判断是谁移除了配置。
+
+245 的 Tailscale 在线。先在 245 上用普通解析访问 www.cloudflare.com，再用 `curl --resolve www.cloudflare.com:443:104.16.123.96` 排除假 DNS，两次实际出口都是 US。这说明本机安装 Mihomo 并把域名设为 DIRECT，仍会经过当前默认网关 192.168.1.1，被路由器再次处理；除非另有独立大陆出站通道，否则单独添加一层本机代理不能解决已观察到的问题。本次只核对旧 Mihomo 服务、配置与网卡，没有安装、启动或修改 245 上的 Mihomo。
+
+用户先要求修改前告知，再提出优先考虑 245 本机分流，明确同意该方案不适用时修改路由器。执行前已说明将修改 1.1 的两份持久配置并重启 OpenClash；245 不改配置。
+
+本次只修改：
+
+1. `/etc/openclash/custom/openclash_custom_rules.list`：在前部恢复仓库 `configs/doubao-domains.txt` 中 14 个域名后缀和精确 www.cloudflare.com 的 15 条来源 192.168.1.245/32 的 DIRECT 规则。保留当时已有的两条 Tailscale UDP 规则。
+2. `/etc/openclash/custom/openclash_custom_overwrite.sh`：使用官方 `ruby_arr_insert_arr` 和 `ruby_uniq`，把上述域名追加到 `dns.fake-ip-filter`。不重新启用旧 reliability.rb 中无关的健康检查修改，保留已有的源 sniffer 覆写。
+
+没有手改生成的 `/etc/openclash/config.yaml`，也没有修改订阅、代理组、整机绕过、245 网络或 Tailscale 设置。真实 DNS 例外会影响其他设备对这些域名的解析，DIRECT 规则仅匹配来源 245。
+
+修改前两份源文件、UCI 配置与运行配置保存在路由器私有目录 `/root/learnwords-issue11-backup-1794798014`，目录为 0700。先核对源文件与评审差异没有变化，再校验暂存的 shell 语法及规则 YAML，回读内容一致后替换源文件，执行原有 OpenClash restart。重载后比较 YAML，顶层只有 dns、rules 两项变化，sniffer 与其他配置相同；17 条 245 规则包含恢复的 15 条和原有 2 条 UDP 规则。
+
+重启后豆包 DNS 返回真实公网地址，245 使用同一个真实 IP 的 HTTPS 出口恢复为 `183.24.92.161 / CN`。远端 [Tests 43795260065](https://github.com/C0verSnow/LearnWords/actions/runs/43795260065) 通过；完整制卡结果另在后续验收记录中核对。
+
+如需撤回本次路由器修改，先确认之后没有其他人改动同名文件，再恢复这两份源文件并重载：
+
+```sh
+cp -p /root/learnwords-issue11-backup-1794798014/openclash_custom_rules.list /etc/openclash/custom/openclash_custom_rules.list
+cp -p /root/learnwords-issue11-backup-1794798014/openclash_custom_overwrite.sh /etc/openclash/custom/openclash_custom_overwrite.sh
+/etc/init.d/openclash restart
+```
+
+不要恢复旧运行 config.yaml 替代正式重载，也不要为了通过制卡检查删除 IP/CN 校验。
