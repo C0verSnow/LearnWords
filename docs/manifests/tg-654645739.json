@@ -1,0 +1,24 @@
+{
+  "task_id": "tg-654645739",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "ore",
+    "mineral",
+    "marble",
+    "quartz",
+    "granite"
+  ],
+  "created_at": "2026-11-19T03:44:14.364946+00:00",
+  "stage": "failed",
+  "failed": {
+    "ore": "豆包输入框不可用，请检查登录和页面选择器",
+    "mineral": "豆包输入框不可用，请检查登录和页面选择器",
+    "marble": "豆包输入框不可用，请检查登录和页面选择器",
+    "quartz": "豆包输入框不可用，请检查登录和页面选择器",
+    "granite": "豆包输入框不可用，请检查登录和页面选择器"
+  },
+  "succeeded": [],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
