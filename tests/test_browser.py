@@ -10,12 +10,24 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
+from src.config import load_config
 from src.content import FIELDS
 from src.doubao import Doubao
 from src.main import generate_cards
 from src.session import export_session, save_profile, restore_profile, PROFILE_AAD
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from scripts.remote_login import apply_command
+
+
+EDITOR_VARIANTS = {
+    "nested": '<div data-testid="chat_input_input"><div id="editor" contenteditable="true">旧草稿</div></div>',
+    "editable-marker": '<div id="editor" data-testid="chat_input_input" contenteditable="true">旧草稿</div>',
+    "textarea-marker": '<textarea id="editor" data-testid="chat_input_input">旧草稿</textarea>',
+    "textarea-wrapper": '<div data-testid="chat_input"><textarea id="editor">旧草稿</textarea></div>',
+    "textbox": '<div data-guidance-input-boundary><div id="editor" role="textbox" contenteditable="true">旧草稿</div></div>',
+    "tiptap": '<div id="editor" class="tiptap ProseMirror" contenteditable="true">旧草稿</div>',
+    "placeholder": '<textarea id="editor" placeholder="给豆包发消息">旧草稿</textarea>',
+}
 
 
 class BrowserPage(BaseHTTPRequestHandler):
@@ -42,14 +54,15 @@ class BrowserPage(BaseHTTPRequestHandler):
           }
         };
         document.querySelector('#editor').oninput = () => {
-          if (location.pathname === '/enter') return;
+          if (location.pathname === '/enter' || location.pathname.startsWith('/editor/')) return;
           const send = document.querySelector('#send');
           send.disabled = true;
           clearTimeout(window.sendReady);
           window.sendReady = setTimeout(() => { send.disabled = false; }, 2000);
         };
         document.querySelector('#send').onclick = () => {
-          window.submittedText = document.querySelector('#editor').innerText;
+          const editor = document.querySelector('#editor');
+          window.submittedText = editor.value ?? editor.innerText;
           document.querySelector('#answer').textContent = RESPONSE;
           document.querySelector('#editor').textContent = '';
         };
@@ -63,8 +76,23 @@ class BrowserPage(BaseHTTPRequestHandler):
                 "fetch('/chat/completion', {method: 'POST'}).then(() => {"
                 "document.querySelector('#answer').innerHTML = '<span id=failed>发送失败</span>';"
                 "});")
+        if self.path == "/missing-editor":
+            self.server.editor_visits += 1
+            if self.server.editor_visits <= self.server.missing_editor_visits:
+                page = page.replace("</script>", "document.querySelector('#editor').remove();</script>")
+        if self.path.startswith("/editor/"):
+            variant = self.path.removeprefix("/editor/")
+            decoys = ('<div hidden data-testid="chat_input_input"><div contenteditable="true">隐藏输入框</div></div>'
+                      '<textarea disabled data-testid="chat_input_input">禁用输入框</textarea>'
+                      '<textarea readonly data-testid="chat_input_input">只读输入框</textarea>'
+                      '<textarea placeholder="搜索对话"></textarea>')
+            if variant == "nested":
+                decoys += '<textarea data-testid="chat_input_input">可用的备用输入框</textarea>'
+            page = page.replace('<div id="editor" contenteditable="true"><p><br></p></div>',
+                                decoys + EDITOR_VARIANTS[variant])
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(page.encode())
 
@@ -86,6 +114,65 @@ class BrowserPage(BaseHTTPRequestHandler):
 
 
 class BrowserTests(unittest.TestCase):
+    def test_prompt_uses_visible_doubao_editor_in_supported_layouts(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        base_url = f"http://127.0.0.1:{server.server_port}/editor/"
+        config = load_config()["doubao"]
+        config.update(url=base_url + "nested", timeout=10, send="css:#send", answer="css:#answer",
+                      authenticated="css:#account", new_chat="css:#new",
+                      generating="css:#not-generating", failed="css:#failed")
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"SESSION_MODE": "none", "BROWSER_DIRECTORY": directory}):
+            browser = Doubao(config)
+            try:
+                browser.restore()
+                for variant in EDITOR_VARIANTS:
+                    with self.subTest(variant=variant):
+                        browser.page.get(base_url + variant)
+                        self.assertEqual(browser.generate("approach")["Word"], "approach")
+                        submitted = browser.page.run_js("return window.submittedText")
+                        self.assertIn("approach", submitted)
+                        self.assertNotIn("旧草稿", submitted)
+            finally:
+                browser.close()
+
+    def test_missing_editor_reloads_and_retries_twice(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        config = load_config()
+        config["doubao"].update(
+            url=f"http://127.0.0.1:{server.server_port}/missing-editor", timeout=10,
+            input="css:#editor", send="css:#send", answer="css:#answer",
+            authenticated="css:#account", new_chat="css:#new",
+            generating="css:#not-generating", failed="css:#failed",
+        )
+        for missing_visits in (2, 3):
+            with self.subTest(missing_visits=missing_visits), tempfile.TemporaryDirectory() as directory, \
+                    patch("src.main.ROOT", Path(directory)), \
+                    patch.dict(os.environ, {"SESSION_MODE": "none", "BROWSER_DIRECTORY": directory}):
+                server.editor_visits = 0
+                server.missing_editor_visits = missing_visits
+                manifest = {"selected": ["approach"], "succeeded": [], "failed": {}}
+                root = Path(directory)
+                cards = generate_cards(manifest, config, root, root / "manifest.json")
+                self.assertEqual(server.editor_visits, 3)
+                if missing_visits == 2:
+                    self.assertEqual([card["Word"] for card in cards], ["approach"])
+                    self.assertEqual(manifest["succeeded"], ["approach"])
+                    self.assertEqual(manifest["failed"], {})
+                else:
+                    self.assertEqual(cards, [])
+                    self.assertIn("豆包输入框不可用", manifest["failed"]["approach"])
+
     def test_rejected_message_stops_remaining_words_without_retry(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
         server.rejections = 0

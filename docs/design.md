@@ -186,3 +186,24 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 
 
 Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_openclash_override.js) 产出独立 OpenClash 原生片段；原始配置恢复为用户指定的较早备份，加载过程只修改生成的运行配置。原自定义规则列表已撤回本轮直接追加，原覆写入口只新增加载独立片段，不在路由器安装 Node。[最终方案、原始文件哈希和验收](openclash-245-split.md#最终方案js-生成独立覆写原始配置恢复)记录了 23 项远端测试与真实 network Probe 的通过结果。
+
+## Issue #13 豆包输入框缺失
+
+- `tg-654645739` 的 Runner 安装、会话配置和 Tailscale 分流步骤通过。脚本进入制卡后识别到了登录控件并找到新对话按钮，但随后等了 15 秒仍找不到输入框。旧代码把这当成登录失效，跳过重试，把全部 5 个词标为失败。任务没有发布卡包。 [失败 Actions](https://github.com/C0verSnow/LearnWords/actions/runs/44453253892) · [任务清单](manifests/tg-654645739.json)
+- `tg-654645740` 的代码和配置相同。上次没有交付，所以 `next` 再次选中 `ore`、`mineral`、`marble`、`quartz`、`granite`。这次 5 个词都生成了新的解释，成功发布 APKG、ZIP 和任务清单。 [成功 Actions](https://github.com/C0verSnow/LearnWords/actions/runs/44652711992) · [任务清单](manifests/tg-654645740.json) · [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645740)
+
+两次任务的提交之间只新增了任务数据。失败运行没有保留当时页面，因此只能确认输入框没有匹配上。页面加载不完整、跳转或页面结构变化都可能造成这个结果。Tailscale 的退出警告发生在失败之后的清理阶段。
+
+脚本现在把输入框缺失当作可重试错误。重试时回到豆包入口，同地址时显式刷新，再检查登录并开新对话。沿用现有 DrissionPage，参考上游对 `get()` 打开同地址时可能不触发导航的说明。 [DrissionPage #351](https://github.com/g1879/DrissionPage/issues/351)
+
+远端 Chrome 回归用带登录控件但缺少输入框的测试页检查两种情况。第三次打开后有输入框时成功制卡。三次都找不到时把具体原因写入任务清单。旧版两种情况都只打开一次，修复后通过 24 项远端测试。已有回归继续检查页面明确拒绝发送时只送出一次请求。 [旧版回归](https://github.com/C0verSnow/LearnWords/actions/runs/44656585591) · [重试修复回归](https://github.com/C0verSnow/LearnWords/actions/runs/44656887431)
+
+### 输入框的备用定位规则
+
+- OpenCLI 的豆包适配器（Apache-2.0）给旧版 `textarea` 按测试标识、聊天容器和发消息提示分层定位。项目还提供浏览器桥接，历史 Issue 有发出请求后等待超时的记录。 [OpenCLI 适配器](https://github.com/jackwener/OpenCLI/blob/9bc5f5ca132ec4d4e48d7ee517d4303bf159e8e8/clis/doubao/utils.js) · [超时问题](https://github.com/jackwener/OpenCLI/issues/2240)
+- Ophel（GPL-3.0）是浏览器扩展，记录了输入区域内的可访问性角色和 TipTap/ProseMirror 类名。维护者指出豆包不同页面的结构可能不同。 [Ophel 适配器](https://github.com/urzeye/ophel/blob/77dde8bc8ba644680a3ba00194a659b98e29346a/src/adapters/doubao-config.ts) · [页面结构讨论](https://github.com/urzeye/ophel/issues/771)
+- universal-web-api（AGPL-3.0）用网页适配配置对接多站点。发布记录明确提到豆包从 `textarea` 换成 TipTap 后，旧规则失效。 [版本记录](https://github.com/lumingya/universal-web-api/releases) · [豆包配置](https://github.com/lumingya/universal-web-api/blob/17c217125d3c6ad2026d211e5662ccf764b563a3/config/sites/www.doubao.com.json)
+
+LearnWords 沿用 DrissionPage，在原规则后按顺序检查五组备用候选。先查聊天标识直接挂在富文本元素上的情况和带聊天标识的 `textarea`，再查带文本框角色的聊天区域、TipTap 编辑器和带发消息提示的 `textarea`。保持原 15 秒查找时限。Chrome 回归覆盖七种页面结构，同时放入隐藏、禁用、只读和搜索控件，检查提示词发到了正确的编辑器，并清掉旧草稿。
+
+新增的输入框和重试用例通过。已有的会话恢复用例在旧版和规则版各出现过一次等待回复超时。本轮用同一版业务代码单独重复该用例三次，再跑完整 25 项，均通过。超时没有再次出现，之前两次的具体原因仍未确定。 [诊断运行](https://github.com/C0verSnow/LearnWords/actions/runs/44658355192)

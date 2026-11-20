@@ -1,9 +1,15 @@
 max_cards: 100
-attempts: 2
+attempts: 3
 doubao:
   url: https://www.doubao.com/chat/
   timeout: 120
   input: 'css:[data-testid="chat_input_input"] [contenteditable="true"]'
+  input_fallbacks:
+    - 'css:[data-testid="chat_input_input"][contenteditable="true"]'
+    - 'css:textarea:is([data-testid="chat_input_input"], [data-testid="chat_input_input"] textarea, [data-testid="chat_input"] textarea):not([readonly])'
+    - 'css:[data-guidance-input-boundary] [role="textbox"][contenteditable="true"]'
+    - 'css:.tiptap.ProseMirror[contenteditable="true"]'
+    - 'css:textarea:is([placeholder*="发消息"], [placeholder*="Message"]):not([readonly])'
   send: 'css:[data-testid="chat_input_send_button"]'
   answer: 'css:[data-testid="message_text_content"]'
   generating: 'css:[data-testid="chat_stop_button"]'
