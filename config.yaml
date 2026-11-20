@@ -1,5 +1,5 @@
 max_cards: 100
-attempts: 2
+attempts: 3
 doubao:
   url: https://www.doubao.com/chat/
   timeout: 120

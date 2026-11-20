@@ -8,7 +8,7 @@ from src.anki import build_package
 from src.archive import build_archive
 from src.config import ROOT, load_config, required_env
 from src.content import parse_content
-from src.doubao import Doubao, LoginExpired
+from src.doubao import ChatInputUnavailable, Doubao, LoginExpired
 from src.github import GitHub, GitHubError
 from src.pronunciation import pronunciation
 from src.repository import checkpoint, read_json, utc_now, write_json
@@ -110,17 +110,22 @@ def record_delivery(manifest, records, records_path, manifest_path, github):
 def generate_cards(manifest, config, output, manifest_path):
     cards = []
     browser = None
+    browser_ready = False
+    attempts = config["attempts"]
     try:
         for index, word in enumerate(manifest["selected"]):
             content_path = ROOT / "docs/explanations" / f"{word}.json"
-            for attempt in range(config["attempts"]):
+            for attempt in range(1, attempts + 1):
                 try:
                     cached = read_json(content_path, None)
                     if cached is None:
                         if browser is None:
                             browser = Doubao(config["doubao"])
+                        reopen = browser_ready and attempt > 1
+                        if not browser_ready:
                             browser.restore()
-                        content = browser.generate(word)
+                            browser_ready = True
+                        content = browser.generate(word, reopen=reopen)
                         write_json(content_path, content)
                     else:
                         content = parse_content(json.dumps(cached), word)
@@ -134,8 +139,11 @@ def generate_cards(manifest, config, output, manifest_path):
                         manifest["failed"][pending] = str(error)
                     return cards
                 except Exception as error:
-                    if attempt + 1 == config["attempts"]:
-                        manifest["failed"][word] = type(error).__name__
+                    reason = str(error) if isinstance(error, ChatInputUnavailable) else type(error).__name__
+                    if attempt == attempts:
+                        manifest["failed"][word] = reason
+                    else:
+                        print(f"{word} 第 {attempt}/{attempts} 次尝试失败：{reason}。将自动重试。", flush=True)
             write_json(manifest_path, manifest)
             print(f"已处理 {index + 1}/{len(manifest['selected'])}：{word}", flush=True)
         return cards

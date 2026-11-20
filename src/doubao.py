@@ -12,6 +12,10 @@ class LoginExpired(RuntimeError):
     pass
 
 
+class ChatInputUnavailable(RuntimeError):
+    pass
+
+
 class Doubao:
     def __init__(self, config, headless=False, profile=None, ini_path=None):
         from DrissionPage import ChromiumOptions, ChromiumPage
@@ -53,7 +57,13 @@ class Doubao:
         self.check_login()
         self.persist = mode == "profile"
 
-    def generate(self, word):
+    def generate(self, word, *, reopen=False):
+        if reopen:
+            url = self.config["url"]
+            if self.page.url == url:
+                self.page.refresh()
+            else:
+                self.page.get(url)
         self.check_login()
         tab = self.page
         if self.config.get("new_chat"):
@@ -66,7 +76,7 @@ class Doubao:
     def wait_for_answer(self, tab, word):
         editor = tab.ele(self.config["input"], timeout=15)
         if not editor:
-            raise LoginExpired("豆包输入框不可用，请检查登录和页面选择器")
+            raise ChatInputUnavailable("豆包输入框不可用，请检查页面加载和输入框选择器")
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.click()
         from DrissionPage.common import Keys

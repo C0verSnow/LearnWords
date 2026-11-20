@@ -186,3 +186,14 @@ Login、Probe、Make cards 和 Tests 统一通过 xvfb-run 启动，屏幕大小
 
 
 Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_openclash_override.js) 产出独立 OpenClash 原生片段；原始配置恢复为用户指定的较早备份，加载过程只修改生成的运行配置。原自定义规则列表已撤回本轮直接追加，原覆写入口只新增加载独立片段，不在路由器安装 Node。[最终方案、原始文件哈希和验收](openclash-245-split.md#最终方案js-生成独立覆写原始配置恢复)记录了 23 项远端测试与真实 network Probe 的通过结果。
+
+## Issue #13 豆包输入框缺失
+
+- `tg-654645739` 的 Runner 安装、会话配置和 Tailscale 分流步骤通过。脚本进入制卡后识别到了登录控件并找到新对话按钮，但随后等了 15 秒仍找不到输入框。旧代码把这当成登录失效，跳过重试，把全部 5 个词标为失败。任务没有发布卡包。 [失败 Actions](https://github.com/C0verSnow/LearnWords/actions/runs/44453253892) · [任务清单](manifests/tg-654645739.json)
+- `tg-654645740` 的代码和配置相同。上次没有交付，所以 `next` 再次选中 `ore`、`mineral`、`marble`、`quartz`、`granite`。这次 5 个词都生成了新的解释，成功发布 APKG、ZIP 和任务清单。 [成功 Actions](https://github.com/C0verSnow/LearnWords/actions/runs/44652711992) · [任务清单](manifests/tg-654645740.json) · [卡包](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645740)
+
+两次任务的提交之间只新增了任务数据。失败运行没有保留当时页面，因此只能确认输入框没有匹配上。页面加载不完整、跳转或页面结构变化都可能造成这个结果。Tailscale 的退出警告发生在失败之后的清理阶段。
+
+脚本现在把输入框缺失当作可重试错误。重试时回到豆包入口，同地址时显式刷新，再检查登录并开新对话。沿用现有 DrissionPage，参考上游对 `get()` 打开同地址时可能不触发导航的说明。 [DrissionPage #351](https://github.com/g1879/DrissionPage/issues/351)
+
+远端 Chrome 回归用带登录控件但缺少输入框的测试页检查两种情况。第三次打开后有输入框时成功制卡。三次都找不到时把具体原因写入任务清单。已有回归继续检查页面明确拒绝发送时只送出一次请求。
