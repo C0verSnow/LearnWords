@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
+from src.config import load_config
 from src.content import FIELDS
 from src.doubao import Doubao
 from src.main import generate_cards
@@ -63,6 +64,10 @@ class BrowserPage(BaseHTTPRequestHandler):
                 "fetch('/chat/completion', {method: 'POST'}).then(() => {"
                 "document.querySelector('#answer').innerHTML = '<span id=failed>发送失败</span>';"
                 "});")
+        if self.path == "/missing-editor":
+            self.server.editor_visits += 1
+            if self.server.editor_visits <= self.server.missing_editor_visits:
+                page = page.replace("</script>", "document.querySelector('#editor').remove();</script>")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
@@ -86,6 +91,38 @@ class BrowserPage(BaseHTTPRequestHandler):
 
 
 class BrowserTests(unittest.TestCase):
+    def test_missing_editor_reloads_and_retries_twice(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        config = load_config()
+        config["doubao"].update(
+            url=f"http://127.0.0.1:{server.server_port}/missing-editor", timeout=10,
+            input="css:#editor", send="css:#send", answer="css:#answer",
+            authenticated="css:#account", new_chat="css:#new",
+            generating="css:#not-generating", failed="css:#failed",
+        )
+        for missing_visits in (2, 3):
+            with self.subTest(missing_visits=missing_visits), tempfile.TemporaryDirectory() as directory, \
+                    patch("src.main.ROOT", Path(directory)), \
+                    patch.dict(os.environ, {"SESSION_MODE": "none", "BROWSER_DIRECTORY": directory}):
+                server.editor_visits = 0
+                server.missing_editor_visits = missing_visits
+                manifest = {"selected": ["approach"], "succeeded": [], "failed": {}}
+                root = Path(directory)
+                cards = generate_cards(manifest, config, root, root / "manifest.json")
+                self.assertEqual(server.editor_visits, 3)
+                if missing_visits == 2:
+                    self.assertEqual([card["Word"] for card in cards], ["approach"])
+                    self.assertEqual(manifest["succeeded"], ["approach"])
+                    self.assertEqual(manifest["failed"], {})
+                else:
+                    self.assertEqual(cards, [])
+                    self.assertIn("豆包输入框不可用", manifest["failed"]["approach"])
+
     def test_rejected_message_stops_remaining_words_without_retry(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
         server.rejections = 0
