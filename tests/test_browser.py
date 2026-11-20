@@ -44,12 +44,6 @@ class BrowserPage(BaseHTTPRequestHandler):
         <div id="editor" contenteditable="true"><p><br></p></div><button id="send">send</button>
         <pre id="answer"></pre>
         <script>
-        window.testClicks = [];
-        for (const eventType of ['pointerdown', 'pointerup', 'click']) {
-          document.addEventListener(eventType, event => {
-            window.testClicks.push([event.type, event.target.id, event.clientX, event.clientY]);
-          }, true);
-        }
         document.querySelector('#new').onclick = () => {
           document.querySelector('#answer').textContent = '';
         };
@@ -266,19 +260,7 @@ class BrowserTests(unittest.TestCase):
                         self.assertEqual(browser.page.local_storage("local-probe"), "value")
                         self.assertIn("probe", [cookie["name"] for cookie in browser.page.cookies()])
                         browser.page.ele(config["input"]).input("旧草稿")
-                        try:
-                            generated = browser.generate("approach")
-                        except TimeoutError as error:
-                            state = browser.page.run_js("""return {
-                                clicks: window.testClicks,
-                                submitted: Boolean(window.submittedText),
-                                answer: document.querySelector('#answer').textContent.length,
-                                editor: document.querySelector('#editor').innerText.length,
-                                disabled: document.querySelector('#send').disabled,
-                                button: document.querySelector('#send').getBoundingClientRect().toJSON()
-                            };""")
-                            self.fail(f"{error}。测试页状态 {state}")
-                        self.assertEqual(generated["Word"], "approach")
+                        self.assertEqual(browser.generate("approach")["Word"], "approach")
                         submitted = browser.page.run_js("return window.submittedText")
                         self.assertNotIn("旧草稿", submitted)
                         self.assertIn("approach", submitted)

@@ -205,3 +205,5 @@ Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_o
 - universal-web-api（AGPL-3.0）用网页适配配置对接多站点。发布记录明确提到豆包从 `textarea` 换成 TipTap 后，旧规则失效。 [版本记录](https://github.com/lumingya/universal-web-api/releases) · [豆包配置](https://github.com/lumingya/universal-web-api/blob/17c217125d3c6ad2026d211e5662ccf764b563a3/config/sites/www.doubao.com.json)
 
 LearnWords 沿用 DrissionPage，在原规则后按顺序检查五组备用候选。先查聊天标识直接挂在富文本元素上的情况和带聊天标识的 `textarea`，再查带文本框角色的聊天区域、TipTap 编辑器和带发消息提示的 `textarea`。保持原 15 秒查找时限。Chrome 回归覆盖七种页面结构，同时放入隐藏、禁用、只读和搜索控件，检查提示词发到了正确的编辑器，并清掉旧草稿。
+
+新增的输入框和重试用例通过。已有的会话恢复用例在旧版和规则版各出现过一次等待回复超时。本轮用同一版业务代码单独重复该用例三次，再跑完整 25 项，均通过。超时没有再次出现，之前两次的具体原因仍未确定。 [诊断运行](https://github.com/C0verSnow/LearnWords/actions/runs/44658355192)

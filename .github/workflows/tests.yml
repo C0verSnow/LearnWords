@@ -19,11 +19,6 @@ jobs:
           echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Check virtual display for headed Chrome
         run: command -v xvfb-run
-      - name: Reproduce the intermittent profile query timeout
-        run: |
-          for attempt in 1 2 3; do
-            xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -p test_browser.py -k fresh_profile -v || exit "$?"
-          done
       - run: xvfb-run -a --server-args="-screen 0 1440x1000x24" python -m unittest discover -s tests -v
 
   secrets:
