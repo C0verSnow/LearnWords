@@ -74,18 +74,19 @@ class Doubao:
         return self.wait_for_answer(tab, word)
 
     def wait_for_answer(self, tab, word):
-        editor = tab.ele(self.config["input"], timeout=15)
-        if not editor:
-            raise ChatInputUnavailable("豆包输入框不可用，请检查页面加载和输入框选择器")
+        editor = self.find_chat_input(tab)
         previous = [ele.text for ele in tab.eles(self.config["answer"], timeout=0)]
         editor.click()
         from DrissionPage.common import Keys
 
-        # DrissionPage's Ctrl+A clear can retain contenteditable drafts; select only this editor.
-        editor.run_js("""this.focus();
-            const range = document.createRange(); range.selectNodeContents(this);
-            const selection = window.getSelection();
-            selection.removeAllRanges(); selection.addRange(range);""")
+        if editor.tag == "textarea":
+            editor.run_js("this.select();")
+        else:
+            # DrissionPage's Ctrl+A clear can retain contenteditable drafts; select only this editor.
+            editor.run_js("""this.focus();
+                const range = document.createRange(); range.selectNodeContents(this);
+                const selection = window.getSelection();
+                selection.removeAllRanges(); selection.addRange(range);""")
         tab.actions.type(Keys.BACKSPACE)
         editor.input(prompt(word))
         if self.config.get("send"):
@@ -113,6 +114,17 @@ class Doubao:
                     pass
             time.sleep(1)
         raise TimeoutError("豆包未在时限内返回完整内容")
+
+    def find_chat_input(self, tab):
+        selectors = [self.config["input"], *self.config.get("input_fallbacks", [])]
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            for selector in selectors:
+                for editor in tab.eles(selector, timeout=0):
+                    if editor.states.has_rect and editor.states.is_displayed and editor.states.is_enabled:
+                        return editor
+            time.sleep(0.25)
+        raise ChatInputUnavailable("豆包输入框不可用，请检查页面加载和输入框选择器")
 
     def check_login(self):
         body = self.page.ele("tag:body").text

@@ -196,4 +196,12 @@ Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_o
 
 脚本现在把输入框缺失当作可重试错误。重试时回到豆包入口，同地址时显式刷新，再检查登录并开新对话。沿用现有 DrissionPage，参考上游对 `get()` 打开同地址时可能不触发导航的说明。 [DrissionPage #351](https://github.com/g1879/DrissionPage/issues/351)
 
-远端 Chrome 回归用带登录控件但缺少输入框的测试页检查两种情况。第三次打开后有输入框时成功制卡。三次都找不到时把具体原因写入任务清单。已有回归继续检查页面明确拒绝发送时只送出一次请求。
+远端 Chrome 回归用带登录控件但缺少输入框的测试页检查两种情况。第三次打开后有输入框时成功制卡。三次都找不到时把具体原因写入任务清单。旧版两种情况都只打开一次，修复后通过 24 项远端测试。已有回归继续检查页面明确拒绝发送时只送出一次请求。 [旧版回归](https://github.com/C0verSnow/LearnWords/actions/runs/44656585591) · [重试修复回归](https://github.com/C0verSnow/LearnWords/actions/runs/44656887431)
+
+### 输入框的备用定位规则
+
+- OpenCLI 的豆包适配器（Apache-2.0）给旧版 `textarea` 按测试标识、聊天容器和发消息提示分层定位。项目还提供浏览器桥接，历史 Issue 有发出请求后等待超时的记录。 [OpenCLI 适配器](https://github.com/jackwener/OpenCLI/blob/9bc5f5ca132ec4d4e48d7ee517d4303bf159e8e8/clis/doubao/utils.js) · [超时问题](https://github.com/jackwener/OpenCLI/issues/2240)
+- Ophel（GPL-3.0）是浏览器扩展，记录了输入区域内的可访问性角色和 TipTap/ProseMirror 类名。维护者指出豆包不同页面的结构可能不同。 [Ophel 适配器](https://github.com/urzeye/ophel/blob/77dde8bc8ba644680a3ba00194a659b98e29346a/src/adapters/doubao-config.ts) · [页面结构讨论](https://github.com/urzeye/ophel/issues/771)
+- universal-web-api（AGPL-3.0）用网页适配配置对接多站点。发布记录明确提到豆包从 `textarea` 换成 TipTap 后，旧规则失效。 [版本记录](https://github.com/lumingya/universal-web-api/releases) · [豆包配置](https://github.com/lumingya/universal-web-api/blob/17c217125d3c6ad2026d211e5662ccf764b563a3/config/sites/www.doubao.com.json)
+
+LearnWords 沿用 DrissionPage，在原规则后按顺序检查五组备用候选。先查聊天标识直接挂在富文本元素上的情况和带聊天标识的 `textarea`，再查带文本框角色的聊天区域、TipTap 编辑器和带发消息提示的 `textarea`。保持原 15 秒查找时限。Chrome 回归覆盖七种页面结构，同时放入隐藏、禁用、只读和搜索控件，检查提示词发到了正确的编辑器，并清掉旧草稿。
