@@ -1,0 +1,24 @@
+{
+  "task_id": "tg-654645740",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "ore",
+    "mineral",
+    "marble",
+    "quartz",
+    "granite"
+  ],
+  "created_at": "2026-11-20T01:19:55.720923+00:00",
+  "stage": "packaged",
+  "failed": {},
+  "succeeded": [
+    "ore",
+    "mineral",
+    "marble",
+    "quartz",
+    "granite"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
