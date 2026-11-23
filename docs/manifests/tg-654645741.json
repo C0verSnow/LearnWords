@@ -1,0 +1,24 @@
+{
+  "task_id": "tg-654645741",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "gust",
+    "breeze",
+    "monsoon",
+    "gale",
+    "hurricane"
+  ],
+  "created_at": "2026-11-23T00:41:16.896502+00:00",
+  "stage": "packaged",
+  "failed": {},
+  "succeeded": [
+    "gust",
+    "breeze",
+    "monsoon",
+    "gale",
+    "hurricane"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}

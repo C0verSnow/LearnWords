@@ -1,0 +1,9 @@
+{
+  "Word": "hurricane",
+  "Intuition": "母语者听到这个词，第一反应就是那种破坏力极强、在海上形成的大风暴，会带来狂风暴雨、洪水，很危险，一般特指大西洋那边的强热带风暴",
+  "Meaning": "飓风，指大西洋和加勒比海地区形成的强热带气旋",
+  "Usage": "多用于气象新闻、灾害报道，描述沿海地区遭遇的严重风暴灾害",
+  "Examples": "1. The hurricane destroyed many houses along the coast. 这场飓风摧毁了海岸边许多房屋。2. People left the city before the hurricane arrived. 人们在飓风来临之前离开了这座城市。",
+  "Comparison": "hurricane 飓风（大西洋），typhoon 台风（西北太平洋），只是生成海域不同，本质都是强热带气旋",
+  "MemoryTip": "大西洋风暴叫 hurricane，太平洋风暴叫 typhoon，分清海域就不会混"
+}
