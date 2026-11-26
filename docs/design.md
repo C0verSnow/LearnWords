@@ -207,3 +207,9 @@ Issue #11 最终按用户追加要求改为 [JS 生成器](../scripts/generate_o
 LearnWords 沿用 DrissionPage，在原规则后按顺序检查五组备用候选。先查聊天标识直接挂在富文本元素上的情况和带聊天标识的 `textarea`，再查带文本框角色的聊天区域、TipTap 编辑器和带发消息提示的 `textarea`。保持原 15 秒查找时限。Chrome 回归覆盖七种页面结构，同时放入隐藏、禁用、只读和搜索控件，检查提示词发到了正确的编辑器，并清掉旧草稿。
 
 新增的输入框和重试用例通过。已有的会话恢复用例在旧版和规则版各出现过一次等待回复超时。本轮用同一版业务代码单独重复该用例三次，再跑完整 25 项，均通过。超时没有再次出现，之前两次的具体原因仍未确定。 [诊断运行](https://github.com/C0verSnow/LearnWords/actions/runs/44658355192)
+
+## Issue #15 渲染等待超时与日志/TG 统计核对
+
+- 任务 `tg-654645744` 的真实运行日志显示：`drought` 第 1 次尝试在约 32.7 秒后报 `RuntimeError`，第 2 次在约 5.5 秒后报 `ElementLostError`，第 3 次在约 137.3 秒后报 `TimeoutError`（`timeout: 120`）；而随后的 `flooding`、`torrent`、`earthquake`、`seismic` 4 个词均在 11–18 秒内成功。 [Actions 日志](https://github.com/C0verSnow/LearnWords/actions/runs/45750175852/job/139675787905) · [任务清单](manifests/tg-654645744.json) · [Release](https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645744)
+- 根因一（冷启动渲染与等待时间不足）：冷启动打开或刷新豆包页面后未等待 `document.readyState === "complete"` 及前端水合稳定即操作 `new_chat`、输入框或发送按钮，导致节点未就绪（`RuntimeError`）、水合期间节点被替换（`ElementLostError`）或未真正发出消息后干等 120 秒超时（`TimeoutError`）。现将 `timeout` 延长至 180 秒，新增 `page_timeout: 30` 与 `render_settle: 1.0`，在打开、刷新及新建对话后等待页面就绪与渲染稳定，等待发送按钮可见且非 `aria-disabled` 再点击，并对 `ElementLostError` 做局部重定位重试。
+- 根因二（日志与 TG 汇报看起来“账目不一致”）：核对 `docs/manifests/tg-654645744.json`、`docs/explanations/`（仅有 4 个成功词的 JSON）和 Release（APKG 实际 4 张卡）可知，**TG 播报“请求 5、已制卡 4、失败 1”与后台实际制卡数完全一致**；造成误解的原因是 `src/main.py` 在重试循环结束后无论成败都无条件打印 `已处理 1/5：drought`。现改为成功时打印 `已制卡 ...`，失败用尽重试时打印 `已跳过 ...（失败：...）` 并附带当前成功/失败累计计数，使 Actions 日志与 TG 通知完全一致。

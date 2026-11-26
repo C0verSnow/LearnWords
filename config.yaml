@@ -2,7 +2,9 @@ max_cards: 100
 attempts: 3
 doubao:
   url: https://www.doubao.com/chat/
-  timeout: 120
+  timeout: 180
+  page_timeout: 30
+  render_settle: 1.0
   input: 'css:[data-testid="chat_input_input"] [contenteditable="true"]'
   input_fallbacks:
     - 'css:[data-testid="chat_input_input"][contenteditable="true"]'
