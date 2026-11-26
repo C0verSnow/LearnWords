@@ -1,0 +1,25 @@
+{
+  "task_id": "tg-654645744",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "drought",
+    "flooding",
+    "torrent",
+    "earthquake",
+    "seismic"
+  ],
+  "created_at": "2026-11-26T03:39:30.934047+00:00",
+  "stage": "packaged",
+  "failed": {
+    "drought": "TimeoutError"
+  },
+  "succeeded": [
+    "flooding",
+    "torrent",
+    "earthquake",
+    "seismic"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
