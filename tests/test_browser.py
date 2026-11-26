@@ -1,3 +1,4 @@
+import contextlib
 import json
 import io
 import os
@@ -80,6 +81,20 @@ class BrowserPage(BaseHTTPRequestHandler):
             self.server.editor_visits += 1
             if self.server.editor_visits <= self.server.missing_editor_visits:
                 page = page.replace("</script>", "document.querySelector('#editor').remove();</script>")
+        if self.path == "/hydrating":
+            page = page.replace(
+                "</script>",
+                "setTimeout(() => {"
+                "  const oldEditor = document.querySelector('#editor');"
+                "  const nextEditor = oldEditor.cloneNode(true);"
+                "  oldEditor.replaceWith(nextEditor);"
+                "  nextEditor.onkeydown = event => { if (event.key === 'Enter') event.preventDefault(); };"
+                "}, 300);"
+                "const sendBtn = document.querySelector('#send');"
+                "sendBtn.setAttribute('aria-disabled', 'true');"
+                "setTimeout(() => { sendBtn.removeAttribute('aria-disabled'); }, 1200);"
+                "</script>",
+            )
         if self.path.startswith("/editor/"):
             variant = self.path.removeprefix("/editor/")
             decoys = ('<div hidden data-testid="chat_input_input"><div contenteditable="true">隐藏输入框</div></div>'
@@ -151,6 +166,7 @@ class BrowserTests(unittest.TestCase):
         config = load_config()
         config["doubao"].update(
             url=f"http://127.0.0.1:{server.server_port}/missing-editor", timeout=10,
+            page_timeout=3, render_settle=0.1,
             input="css:#editor", send="css:#send", answer="css:#answer",
             authenticated="css:#account", new_chat="css:#new",
             generating="css:#not-generating", failed="css:#failed",
@@ -163,15 +179,46 @@ class BrowserTests(unittest.TestCase):
                 server.missing_editor_visits = missing_visits
                 manifest = {"selected": ["approach"], "succeeded": [], "failed": {}}
                 root = Path(directory)
-                cards = generate_cards(manifest, config, root, root / "manifest.json")
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    cards = generate_cards(manifest, config, root, root / "manifest.json")
                 self.assertEqual(server.editor_visits, 3)
+                output_text = stdout.getvalue()
                 if missing_visits == 2:
                     self.assertEqual([card["Word"] for card in cards], ["approach"])
                     self.assertEqual(manifest["succeeded"], ["approach"])
                     self.assertEqual(manifest["failed"], {})
+                    self.assertIn("已制卡 1/1：approach", output_text)
+                    self.assertNotIn("已跳过", output_text)
                 else:
                     self.assertEqual(cards, [])
                     self.assertIn("豆包输入框不可用", manifest["failed"]["approach"])
+                    self.assertIn("已跳过 1/1：approach", output_text)
+                    self.assertNotIn("已制卡", output_text)
+
+    def test_hydrating_editor_and_aria_disabled_send_button(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        config = load_config()["doubao"]
+        config.update(
+            url=f"http://127.0.0.1:{server.server_port}/hydrating", timeout=10,
+            page_timeout=10, render_settle=0.1,
+            input="css:#editor", send="css:#send", answer="css:#answer",
+            authenticated="css:#account", new_chat="css:#new",
+            generating="css:#not-generating", failed="css:#failed",
+        )
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"SESSION_MODE": "none", "BROWSER_DIRECTORY": directory}):
+            browser = Doubao(config)
+            try:
+                browser.restore()
+                self.assertEqual(browser.generate("approach")["Word"], "approach")
+            finally:
+                browser.close()
 
     def test_rejected_message_stops_remaining_words_without_retry(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), BrowserPage)

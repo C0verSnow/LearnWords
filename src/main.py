@@ -137,15 +137,33 @@ def generate_cards(manifest, config, output, manifest_path):
                 except LoginExpired as error:
                     for pending in manifest["selected"][index:]:
                         manifest["failed"][pending] = str(error)
+                    print(
+                        f"{word} 触发登录或风控限制：{error}；停止后续单词"
+                        f"（已制卡 {len(manifest['succeeded'])}，失败 {len(manifest['failed'])}）。",
+                        flush=True,
+                    )
                     return cards
                 except Exception as error:
                     reason = str(error) if isinstance(error, ChatInputUnavailable) else type(error).__name__
                     if attempt == attempts:
                         manifest["failed"][word] = reason
+                        print(f"{word} 第 {attempt}/{attempts} 次尝试失败：{reason}。已达最大重试次数。", flush=True)
                     else:
                         print(f"{word} 第 {attempt}/{attempts} 次尝试失败：{reason}。将自动重试。", flush=True)
             write_json(manifest_path, manifest)
-            print(f"已处理 {index + 1}/{len(manifest['selected'])}：{word}", flush=True)
+            total = len(manifest["selected"])
+            if word in manifest["failed"]:
+                print(
+                    f"已跳过 {index + 1}/{total}：{word}（失败：{manifest['failed'][word]}；"
+                    f"当前成功 {len(manifest['succeeded'])}，失败 {len(manifest['failed'])}）",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"已制卡 {index + 1}/{total}：{word}"
+                    f"（当前成功 {len(manifest['succeeded'])}，失败 {len(manifest['failed'])}）",
+                    flush=True,
+                )
         return cards
     finally:
         if browser is not None:
