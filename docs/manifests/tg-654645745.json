@@ -10,7 +10,7 @@
     "continent"
   ],
   "created_at": "2026-11-27T01:57:38.864096+00:00",
-  "stage": "packaged",
+  "stage": "published",
   "failed": {},
   "succeeded": [
     "drought",
@@ -20,5 +20,7 @@
     "continent"
   ],
   "shortfall": 0,
-  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)",
+  "release_url": "https://github.com/C0verSnow/LearnWords/releases/tag/learnword-tg-654645745",
+  "published_at": "2026-11-27T01:59:36.126630+00:00"
 }
