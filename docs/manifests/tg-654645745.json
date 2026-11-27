@@ -1,0 +1,24 @@
+{
+  "task_id": "tg-654645745",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "drought",
+    "avalanche",
+    "terrain",
+    "landscape",
+    "continent"
+  ],
+  "created_at": "2026-11-27T01:57:38.864096+00:00",
+  "stage": "packaged",
+  "failed": {},
+  "succeeded": [
+    "drought",
+    "avalanche",
+    "terrain",
+    "landscape",
+    "continent"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
