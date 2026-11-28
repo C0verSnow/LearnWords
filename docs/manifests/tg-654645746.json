@@ -1,0 +1,24 @@
+{
+  "task_id": "tg-654645746",
+  "requested": 5,
+  "mode": "next",
+  "selected": [
+    "cave",
+    "cliff",
+    "glacier",
+    "swamp",
+    "delta"
+  ],
+  "created_at": "2026-11-28T03:12:19.165488+00:00",
+  "stage": "packaged",
+  "failed": {},
+  "succeeded": [
+    "cave",
+    "cliff",
+    "glacier",
+    "swamp",
+    "delta"
+  ],
+  "shortfall": 0,
+  "pronunciation_source": "eSpeak NG en-gb / en-us (synthetic IPA and WAV)"
+}
